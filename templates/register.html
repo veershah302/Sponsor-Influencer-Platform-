@@ -3,7 +3,7 @@
 Register    
 {% endblock %}
 {% block content %}
-<h1>Login</h1>
+<h1>Register</h1>
 
 <form>
 
@@ -18,9 +18,17 @@ Register
     </div>
 
     
+    <div class="form-group">
+        <label for="confirmpassword" class="form-label">Confirm Password</label>
+        <input type="password" name="confirmpassword" class="form-control" required>
+    </div>
 
     
-    <input type="submit" value="Login" class="btn btn-primary">
+    <div class="form-group">
+        <label for="name" class="form-label">Name</label>
+        <input type="text" name="name" class="form-control">
+    </div>
+    <input type="submit" value="Register" class="btn btn-primary">
 
 
 
