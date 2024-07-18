@@ -1,0 +1,33 @@
+{% extends 'layout.html' %}
+
+{% block title %}
+    Login
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mt-5 text-center">Login</h1>
+    <div class="row mt-5">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h2 class="card-title">Sponsor Login</h2>
+                    <p class="card-text">Log in to manage your campaigns and ad requests.</p>
+                    <a href="{{ url_for('sponsorlogin') }}" class="btn btn-primary">Login as Sponsor</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h2 class="card-title">Influencer Login</h2>
+                    <p class="card-text">Log in to view and accept ad requests.</p>
+                    <a href="{{ url_for('influencerlogin') }}" class="btn btn-primary">Login as Influencer</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+

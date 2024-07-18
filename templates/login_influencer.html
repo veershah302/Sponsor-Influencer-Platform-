@@ -3,9 +3,9 @@
 Register    
 {% endblock %}
 {% block content %}
-<h1>Register</h1>
+<h1>Login</h1>
 
-<form>
+<form method="post">
 
     <div class="form-group">
         <label for="username" class="form-label">Username</label>
@@ -18,17 +18,9 @@ Register
     </div>
 
     
-    <div class="form-group">
-        <label for="confirmpassword" class="form-label">Confirm Password</label>
-        <input type="password" name="confirmpassword" class="form-control" required>
-    </div>
 
     
-    <div class="form-group">
-        <label for="name" class="form-label">Name</label>
-        <input type="text" name="name" class="form-control">
-    </div>
-    <input type="submit" value="Register" class="btn btn-primary">
+    <input type="submit" value="Login" class="btn btn-primary">
 
 
 
