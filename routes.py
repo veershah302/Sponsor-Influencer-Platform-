@@ -3,7 +3,7 @@ from flask import render_template,request,url_for,flash,redirect,session
 
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
-from models import Sponsor,db
+from models import Sponsor,db,Influencer
 
 
 #----
@@ -87,3 +87,90 @@ def sponsorregister_post():
     db.session.commit()
     return redirect(url_for('sponsorlogin'))
     
+
+
+
+
+
+@app.route("/influencerregister", methods=["post"])
+def influencerregister_post():
+    username=request.form.get("username")
+    password=request.form.get("password")
+    confirmpassword=request.form.get("confirmpassword")
+    name=request.form.get("name")
+    email=request.form.get("email")
+    category=request.form.get("category")
+    niche=request.form.get("niche")
+    reach=request.form.get("reach")
+    if not (username and password and confirmpassword and category and niche and reach):
+        flash("Fill out all the required details")
+        return redirect(url_for("influencerregister"))
+    if password!=confirmpassword:
+        flash("Password and confirm password do not match")
+        return redirect(url_for("influencerregister"))
+    user = Influencer.query.filter_by(username=username).first()
+
+    if user:
+        flash('Username already exists')
+        return redirect(url_for('influencerregister'))
+    password_hash = generate_password_hash(password)
+    new_user = Influencer(username=username, pass_hash=password_hash, name=name, email=email,category=category,niche=niche,reach=reach)
+    db.session.add(new_user)
+    db.session.commit()
+    return redirect(url_for('influencerlogin'))
+
+
+
+@app.route('/sponsorlogin', methods=['POST'])
+def sponsor_login_post():
+    username = request.form.get('username')
+    password = request.form.get('password')
+
+    if not username or not password:
+        flash('Please fill out all fields')
+        return redirect(url_for('login'))
+    
+    user = Sponsor.query.filter_by(username=username).first()
+    
+    if not user:
+        flash('Username does not exist')
+        return redirect(url_for('sponsorlogin'))
+    
+    if not check_password_hash(user.pass_hash, password):
+        flash('Incorrect password')
+        return redirect(url_for('sponsorlogin'))
+    
+    session['user_id'] = user.sponsor_id
+    flash('Login successful')
+    return redirect(url_for('index'))
+
+
+
+
+
+@app.route('/influencerlogin', methods=['POST'])
+def influencer_login_post():
+    username = request.form.get('username')
+    password = request.form.get('password')
+
+    if not username or not password:
+        flash('Please fill out all fields')
+        return redirect(url_for('login'))
+    
+    user = Influencer.query.filter_by(username=username).first()
+    
+    if not user:
+        flash('Username does not exist')
+        return redirect(url_for('influencerlogin'))
+    
+    if not check_password_hash(user.pass_hash, password):
+        flash('Incorrect password')
+        return redirect(url_for('influencerlogin'))
+    
+    session['user_id'] = user.influencer_id
+    flash('Login successful')
+    return redirect(url_for('index'))
+
+
+
+
