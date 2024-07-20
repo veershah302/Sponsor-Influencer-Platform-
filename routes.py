@@ -8,6 +8,29 @@ from models import Sponsor,db,Influencer
 
 #----
 #decorator for authorisation
+def auth_required_sponsor(func):
+    @wraps(func)
+    def inner(*args, **kwargs):
+        user_id = session.get('user_id')
+        if user_id and user_id.startswith('SP'):
+            return func(*args, **kwargs)
+        else:
+            flash('Please login as an sponsor to continue')
+            return redirect(url_for('sponsorlogin'))
+    return inner
+    
+def auth_required_influencer(func):
+    @wraps(func)
+    def inner(*args, **kwargs):
+        user_id = session.get('user_id')
+        if user_id and user_id.startswith('INF'):
+            return func(*args, **kwargs)
+        else:
+            flash('Please login as an influencer to continue')
+            return redirect(url_for('influencerlogin'))
+    return inner
+
+
 def auth_required(func):
     @wraps(func)
     def inner(*args, **kwargs):
@@ -17,7 +40,6 @@ def auth_required(func):
             flash('Please login to continue')
             return redirect(url_for('login'))
     return inner
-    
 
 
 
@@ -170,6 +192,105 @@ def influencer_login_post():
     session['user_id'] = user.influencer_id
     flash('Login successful')
     return redirect(url_for('index'))
+
+
+@app.route("/logout")
+@auth_required
+def logout():
+    session.pop('user_id',None)
+    return redirect(url_for("login"))
+
+
+
+
+
+
+@app.route("/sponsorprofile")
+@auth_required_sponsor
+def sponsorprofile():
+    user = Sponsor.query.get(session['user_id'])
+    return render_template('sponsorprofile.html', user=user)
+
+
+@app.route("/influencerprofile")
+@auth_required_influencer
+def influencerprofile():
+    user = Influencer.query.get(session['user_id'])
+    return render_template('influencerprofile.html', user=user)
+
+
+@app.route('/sponsorprofile', methods=['POST'])
+@auth_required_sponsor
+def sponsorprofile_post():
+    username = request.form.get('username')
+    cpassword = request.form.get('cpassword')
+    password = request.form.get('password')
+    name = request.form.get('name')
+    email=request.form.get("email")
+    budget=request.form.get("budget")
+
+    if not username or not cpassword or not password:
+        flash('Please fill out all the required fields')
+        return redirect(url_for('profile'))
+    
+    user = Sponsor.query.get(session['user_id'])
+    if not check_password_hash(user.pass_hash, cpassword):
+        flash('Incorrect password')
+        return redirect(url_for('sponsorprofile'))
+    
+    if username != user.username:
+        new_username = Sponsor.query.filter_by(username=username).first()
+        if new_username:
+            flash('Username already exists')
+            return redirect(url_for('sponsorprofile'))
+    
+    new_password_hash = generate_password_hash(password)
+    user.username = username
+    user.pass_hash = new_password_hash
+    user.name = name
+    user.email=email
+    user.budget=budget
+    db.session.commit()
+    flash('Profile updated successfully')
+    return redirect(url_for('sponsorprofile'))
+
+
+
+
+@app.route('/influencerprofile', methods=['POST'])
+@auth_required_influencer
+def influencerprofile_post():
+    username = request.form.get('username')
+    cpassword = request.form.get('cpassword')
+    password = request.form.get('password')
+    name = request.form.get('name')
+    email=request.form.get("email")
+    reach=request.form.get("reach")
+
+    if not username or not cpassword or not password:
+        flash('Please fill out all the required fields')
+        return redirect(url_for('influencerprofile'))
+    
+    user = Influencer.query.get(session['user_id'])
+    if not check_password_hash(user.pass_hash, cpassword):
+        flash('Incorrect password')
+        return redirect(url_for('influencerprofile'))
+    
+    if username != user.username:
+        new_username = Sponsor.query.filter_by(username=username).first()
+        if new_username:
+            flash('Username already exists')
+            return redirect(url_for('influencerprofile'))
+    
+    new_password_hash = generate_password_hash(password)
+    user.username = username
+    user.pass_hash = new_password_hash
+    user.name = name
+    user.email=email
+    user.reach=reach
+    db.session.commit()
+    flash('Profile updated successfully')
+    return redirect(url_for('influencerprofile'))
 
 
 

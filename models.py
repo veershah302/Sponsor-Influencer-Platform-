@@ -8,6 +8,29 @@ db=SQLAlchemy(app)
 from datetime import datetime
 
 
+
+from flask_sqlalchemy import SQLAlchemy
+
+
+def generate_sponsor_id():
+    last_sponsor = Sponsor.query.order_by(Sponsor.sponsor_id.desc()).first()
+    if last_sponsor:
+        last_id = int(last_sponsor.sponsor_id.replace("SP", ""))
+        new_id = f"SP{last_id + 1}"
+    else:
+        new_id = "SP1"
+    return new_id
+
+def generate_influencer_id():
+    last_influencer = Influencer.query.order_by(Influencer.influencer_id.desc()).first()
+    if last_influencer:
+        last_id = int(last_influencer.influencer_id.replace("INF", ""))
+        new_id = f"INF{last_id + 1}"
+    else:
+        new_id = "INF1"
+    return new_id
+
+
 class Admin(db.Model):
     __tablename__ = 'admins'
     admin_id = db.Column(db.Integer, primary_key=True)
@@ -18,7 +41,7 @@ class Admin(db.Model):
 
 class Sponsor(db.Model):
     __tablename__ = 'sponsors'
-    sponsor_id = db.Column(db.Integer, primary_key=True)
+    sponsor_id = db.Column(db.String(100), primary_key=True, default=generate_sponsor_id)
     username = db.Column(db.String(80), unique=True, nullable=False)
     pass_hash = db.Column(db.String(200), nullable=False)
     name = db.Column(db.String(100), nullable=False)
@@ -29,7 +52,7 @@ class Sponsor(db.Model):
 
 class Influencer(db.Model):
     __tablename__ = 'influencers'
-    influencer_id = db.Column(db.Integer, primary_key=True)
+    influencer_id = db.Column(db.String(100), primary_key=True, default=generate_influencer_id)
     username = db.Column(db.String(80), unique=True, nullable=False)
     pass_hash = db.Column(db.String(200), nullable=False)
     name = db.Column(db.String(100), nullable=False)
@@ -75,3 +98,5 @@ with app.app_context():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
+
