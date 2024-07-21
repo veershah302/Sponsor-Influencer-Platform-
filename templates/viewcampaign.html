@@ -1,0 +1,39 @@
+{% extends 'layout.html' %}
+{% block content %}
+
+<div class="container mt-5">
+    <h1 class="mb-4">Existing Campaigns</h1>
+    <table class="table table-bordered table-striped">
+        <thead class="thead-dark">
+            <tr>
+                <th>ID</th>
+                <th>Sponsor ID</th>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th>Budget</th>
+                <th>Visibility</th>
+                <th>Goals</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for campaign in campaigns %}
+            <tr>
+                <td>{{ campaign.campaign_id }}</td>
+                <td>{{ campaign.sponsor_id }}</td>
+                <td>{{ campaign.name }}</td>
+                <td>{{ campaign.description }}</td>
+                <td>{{ campaign.start_date }}</td>
+                <td>{{ campaign.end_date }}</td>
+                <td>{{ campaign.budget }}</td>
+                <td>{{ campaign.visibility }}</td>
+                <td>{{ campaign.goals }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+    
+{% endblock %}

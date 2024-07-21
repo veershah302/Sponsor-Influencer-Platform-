@@ -22,8 +22,22 @@
             <span class="navbar-toggler-icon"></span>
           </button>
           <div class="collapse navbar-collapse" id="navbarNav">
+            
             <ul class="navbar-nav">
               
+              
+
+              {% if 'user_id' in session %}
+              <li class="nav-item">
+                {% if session['user_id'].startswith('SP') %}
+              <a class="nav-link" href="{{ url_for('sponsorprofile') }}">Profile</a>
+              {% elif session['user_id'].startswith('INF') %}
+              <a class="nav-link" href="{{ url_for('influencerprofile') }}">Profile</a>
+              {% elif session['user_id'].startswith('AD') %}
+              <a class="nav-link" href="{{ url_for('adminprofile') }}">Profile</a>
+              {% endif %}
+              </li>
+              {% else %}
               <li class="nav-item">
                 <a class="nav-link active" href="{{ url_for("login") }}">Login</a>
               </li>
@@ -31,6 +45,11 @@
                 <a class="nav-link" href="{{ url_for("register")}}">Register</a>
               </li>
               
+
+              {% endif %}
+
+
+
             </ul>
           </div>
         </div>

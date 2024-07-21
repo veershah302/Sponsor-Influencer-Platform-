@@ -1,0 +1,54 @@
+{% extends 'layout.html' %}
+{% block title %}
+    Add Campaign
+{% endblock %}
+{% block content %}
+    
+
+<div class="container mt-5">
+    <h1 class="mb-4">Add Campaign</h1>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-danger">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    <form method="post">
+        
+        <div class="form-group">
+            <label for="name">Campaign Name</label>
+            <input type="text" id="name" name="name" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label for="description">Description</label>
+            <textarea id="description" name="description" class="form-control" rows="4" required></textarea>
+        </div>
+        <div class="form-group">
+            <label for="start_date">Start Date</label>
+            <input type="date" id="start_date" name="start_date" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label for="end_date">End Date</label>
+            <input type="date" id="end_date" name="end_date" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label for="budget">Budget</label>
+            <input type="number" id="budget" name="budget" class="form-control" step="0.01" required>
+        </div>
+        <div class="form-group">
+            <label for="visibility">Visibility</label>
+            <select id="visibility" name="visibility" class="form-control" required>
+                <option value="Public">Public</option>
+                <option value="Private">Private</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="goals">Goals</label>
+            <textarea id="goals" name="goals" class="form-control" rows="4"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Add Campaign</button>
+    </form>
+</div>
+
+{% endblock %}

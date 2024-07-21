@@ -3,9 +3,9 @@ from flask import render_template,request,url_for,flash,redirect,session
 
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
-from models import Sponsor,db,Influencer
+from models import Sponsor,db,Influencer,Admin,Campaign
 
-
+import datetime
 #----
 #decorator for authorisation
 def auth_required_sponsor(func):
@@ -30,6 +30,17 @@ def auth_required_influencer(func):
             return redirect(url_for('influencerlogin'))
     return inner
 
+    
+def auth_required_admin(func):
+    @wraps(func)
+    def inner(*args, **kwargs):
+        user_id = session.get('user_id')
+        if user_id and user_id.startswith('AD'):
+            return func(*args, **kwargs)
+        else:
+            flash('Please login as an admin to continue')
+            return redirect(url_for('adminlogin'))
+    return inner
 
 def auth_required(func):
     @wraps(func)
@@ -144,7 +155,7 @@ def influencerregister_post():
 
 
 @app.route('/sponsorlogin', methods=['POST'])
-def sponsor_login_post():
+def sponsorlogin_post():
     username = request.form.get('username')
     password = request.form.get('password')
 
@@ -171,7 +182,7 @@ def sponsor_login_post():
 
 
 @app.route('/influencerlogin', methods=['POST'])
-def influencer_login_post():
+def influencerlogin_post():
     username = request.form.get('username')
     password = request.form.get('password')
 
@@ -218,6 +229,13 @@ def influencerprofile():
     user = Influencer.query.get(session['user_id'])
     return render_template('influencerprofile.html', user=user)
 
+
+
+@app.route("/adminprofile")
+@auth_required_admin
+def adminprofile():
+    user = Admin.query.get(session['user_id'])
+    return render_template('adminprofile.html', user=user)
 
 @app.route('/sponsorprofile', methods=['POST'])
 @auth_required_sponsor
@@ -295,3 +313,139 @@ def influencerprofile_post():
 
 
 
+
+
+
+@app.route('/adminlogin', methods=['POST'])
+def adminlogin_post():
+    username = request.form.get('username')
+    password = request.form.get('password')
+
+    if not username or not password:
+        flash('Please fill out all fields')
+        return redirect(url_for('login'))
+    
+    user = Admin.query.filter_by(username=username).first()
+    
+    if not user:
+        flash('Username does not exist')
+        return redirect(url_for('adminlogin'))
+    
+    if not check_password_hash(user.pass_hash, password):
+        flash('Incorrect password')
+        return redirect(url_for('adminlogin'))
+    
+    session['user_id'] = user.admin_id
+    flash('Login successful')
+    return redirect(url_for('index'))
+
+
+
+
+
+@app.route("/adminlogin")
+def adminlogin():
+    return render_template("login_admin.html")
+
+
+
+
+@app.route('/adminprofile', methods=['POST'])
+@auth_required_admin
+def adminprofile_post():
+    username = request.form.get('username')
+    cpassword = request.form.get('cpassword')
+    password = request.form.get('password')
+    name = request.form.get('name')
+    email=request.form.get("email")
+    
+
+    if not username or not cpassword or not password:
+        flash('Please fill out all the required fields')
+        return redirect(url_for('profile'))
+    
+    user = Admin.query.get(session['user_id'])
+    if not check_password_hash(user.pass_hash, cpassword):
+        flash('Incorrect password')
+        return redirect(url_for('adminprofile'))
+    
+    if username != user.username:
+        new_username = Admin.query.filter_by(username=username).first()
+        if new_username:
+            flash('Username already exists')
+            return redirect(url_for('adminprofile'))
+    
+    new_password_hash = generate_password_hash(password)
+    user.username = username
+    user.pass_hash = new_password_hash
+    user.name = name
+    user.email=email
+    db.session.commit()
+    flash('Profile updated successfully')
+    return redirect(url_for('adminprofile'))
+
+
+
+@app.route("/campaign/add", methods=["POST"])
+@auth_required_sponsor
+def add_campaign_post():
+    userid=session.get("user_id")
+    
+    
+    name = request.form.get("name")
+    description = request.form.get("description")
+    start_date = datetime.datetime.strptime(request.form.get("start_date"),"%Y-%m-%d")
+    end_date = datetime.datetime.strptime(request.form.get("end_date"),"%Y-%m-%d")
+    budget = request.form.get("budget")
+    visibility = request.form.get("visibility")
+    goals = request.form.get("goals")
+
+    if not ( name and description and start_date and end_date and budget and visibility and goals):
+        flash("Please fill out all required fields.")
+        return redirect(url_for("add_campaign"))
+
+    new_campaign = Campaign(
+        sponsor_id=userid,
+        name=name,
+        description=description,
+        start_date=start_date,
+        end_date=end_date,
+        budget=budget,
+        visibility=visibility,
+        goals=goals
+    )
+
+    db.session.add(new_campaign)
+    db.session.commit()
+    flash("Campaign added successfully!")
+    return redirect(url_for("add_campaign"))
+
+    
+
+@app.route("/campaign/add")
+@auth_required_sponsor
+def add_campaign():
+    return render_template("addcampaign.html")
+
+@app.route("/campaign/view")
+@auth_required_sponsor
+def view_campaign():
+    campaigns=Campaign.query.filter_by(sponsor_id=session.get("user_id")).all()
+    return render_template("viewcampaign.html",campaigns=campaigns)
+
+@app.route("/campaign/edit/<int:id>")
+@auth_required_sponsor
+def update_delete_view_campaign(id):
+    
+
+    if id in Campaign.query.filter_by(sponsor_id=session.get("user_id")).all():
+        campaign=Campaign.query.filter_by(campaign_id=id)
+    return str(Campaign.query.filter_by(sponsor_id=session.get("user_id")).all())
+        # return render_template('editcampaign.html',campaign=campaign)
+
+
+
+    # else:
+    #     flash("Unauthorised access")
+    #     return redirect(url_for("index"))
+    
