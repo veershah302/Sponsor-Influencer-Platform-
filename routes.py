@@ -437,15 +437,11 @@ def view_campaign():
 @auth_required_sponsor
 def update_delete_view_campaign(id):
     
+    for campaign in Campaign.query.filter_by(sponsor_id=session.get("user_id")).all():
+        if id == campaign.campaign_id:
+            return render_template('editcampaign.html',campaign=campaign)
 
-    if id in Campaign.query.filter_by(sponsor_id=session.get("user_id")).all():
-        campaign=Campaign.query.filter_by(campaign_id=id)
-    return str(Campaign.query.filter_by(sponsor_id=session.get("user_id")).all())
-        # return render_template('editcampaign.html',campaign=campaign)
-
-
-
-    # else:
-    #     flash("Unauthorised access")
-    #     return redirect(url_for("index"))
+    else:
+        flash("Unauthorised access")
+        return redirect(url_for("index"))
     
