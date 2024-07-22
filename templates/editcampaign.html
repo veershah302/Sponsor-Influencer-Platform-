@@ -51,4 +51,8 @@
     </form>
 </div>
 
+<form action="{{ url_for('delete_campaign', id=campaign.campaign_id) }}" method="post" style="display:inline;">
+    <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+</form>
+
 {% endblock %}

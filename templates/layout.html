@@ -28,15 +28,25 @@
               
 
               {% if 'user_id' in session %}
-              <li class="nav-item">
+              
                 {% if session['user_id'].startswith('SP') %}
+              <li class="nav-item">
               <a class="nav-link" href="{{ url_for('sponsorprofile') }}">Profile</a>
-              {% elif session['user_id'].startswith('INF') %}
-              <a class="nav-link" href="{{ url_for('influencerprofile') }}">Profile</a>
-              {% elif session['user_id'].startswith('AD') %}
-              <a class="nav-link" href="{{ url_for('adminprofile') }}">Profile</a>
-              {% endif %}
               </li>
+              <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('view_campaign') }}">Campaigns</a>
+              </li>
+
+              {% elif session['user_id'].startswith('INF') %}
+              <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('influencerprofile') }}">Profile</a>
+              </li>
+              {% elif session['user_id'].startswith('AD') %}
+              <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('adminprofile') }}">Profile</a>
+              </li>
+              {% endif %}
+              
               {% else %}
               <li class="nav-item">
                 <a class="nav-link active" href="{{ url_for("login") }}">Login</a>

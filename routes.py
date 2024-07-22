@@ -109,10 +109,15 @@ def sponsorregister_post():
         return redirect(url_for("sponsorregister"))
     
     user = Sponsor.query.filter_by(username=username).first()
+    user1 = Sponsor.query.filter_by(email=email).first()
 
     if user:
         flash('Username already exists')
         return redirect(url_for('sponsorregister'))
+    
+    if user1:
+        flash("Email already exists")
+        return redirect(url_for("sponsorregister"))
     password_hash = generate_password_hash(password)
     
     new_user = Sponsor(username=username, pass_hash=password_hash, name=name, email=email,company_name=company_name,industry=industry,budget=budget)
@@ -142,10 +147,16 @@ def influencerregister_post():
         flash("Password and confirm password do not match")
         return redirect(url_for("influencerregister"))
     user = Influencer.query.filter_by(username=username).first()
+    user1 = Sponsor.query.filter_by(email=email).first()
+
+    
 
     if user:
         flash('Username already exists')
         return redirect(url_for('influencerregister'))
+    if user1:
+        flash("Email already exists")
+        return redirect(url_for("sponsorregister"))
     password_hash = generate_password_hash(password)
     new_user = Influencer(username=username, pass_hash=password_hash, name=name, email=email,category=category,niche=niche,reach=reach)
     db.session.add(new_user)
@@ -435,7 +446,7 @@ def view_campaign():
 
 @app.route("/campaign/edit/<int:id>")
 @auth_required_sponsor
-def update_delete_view_campaign(id):
+def edit_campaign(id):
     
     for campaign in Campaign.query.filter_by(sponsor_id=session.get("user_id")).all():
         if id == campaign.campaign_id:
@@ -443,5 +454,61 @@ def update_delete_view_campaign(id):
 
     else:
         flash("Unauthorised access")
-        return redirect(url_for("index"))
+        return redirect(url_for("view_campaign"))
     
+
+@app.route("/campaign/edit/<int:id>",methods=["post"])
+@auth_required_sponsor
+def edit_campaign_post(id):
+    for campaign in Campaign.query.filter_by(sponsor_id=session.get("user_id")).all():
+        if id == campaign.campaign_id:
+
+            
+            name = request.form.get("name")
+            description = request.form.get("description")
+            start_date = datetime.datetime.strptime(request.form.get("start_date"),"%Y-%m-%d")
+            end_date = datetime.datetime.strptime(request.form.get("end_date"),"%Y-%m-%d")
+            budget = request.form.get("budget")
+            visibility = request.form.get("visibility")
+            goals = request.form.get("goals")
+            
+            campaign.name=name
+            campaign.description=description
+            campaign.start_date=start_date
+            campaign.end_date=end_date
+            campaign.budget=budget
+            campaign.visibility=visibility
+            campaign.goals=goals
+            db.session.commit()
+            flash("changes saved successfully")
+            return(redirect(url_for("edit_campaign",id=id)))
+    else:
+        flash("Unauthorised access")
+        return(redirect(url_for("view_campaign")))
+        
+@app.route("/campaign/delete/<int:id>", methods=["post"])
+@auth_required_sponsor
+def delete_campaign(id):
+    for campaign in Campaign.query.filter_by(sponsor_id=session.get("user_id")).all():
+        if id == campaign.campaign_id:
+            db.session.delete(campaign)
+            db.session.commit()
+            flash("Campaign deleted successfully.")
+            return redirect(url_for("view_campaign"))
+    else:
+        flash("Forbidden access")
+        return redirect(url_for("view_campaign"))
+    
+
+
+        
+
+
+            
+
+
+
+
+
+
+
