@@ -3,7 +3,7 @@ from flask import render_template,request,url_for,flash,redirect,session
 
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
-from models import Sponsor,db,Influencer,Admin,Campaign
+from models import Sponsor,db,Influencer,Admin,Campaign,AdRequest
 
 import datetime
 #----
@@ -156,7 +156,7 @@ def influencerregister_post():
         return redirect(url_for('influencerregister'))
     if user1:
         flash("Email already exists")
-        return redirect(url_for("sponsorregister"))
+        return redirect(url_for("influencerregister"))
     password_hash = generate_password_hash(password)
     new_user = Influencer(username=username, pass_hash=password_hash, name=name, email=email,category=category,niche=niche,reach=reach)
     db.session.add(new_user)
@@ -499,6 +499,64 @@ def delete_campaign(id):
         flash("Forbidden access")
         return redirect(url_for("view_campaign"))
     
+
+@app.route("/adrequest/view")
+def view_adrequest():
+    return("Your adrequests")
+
+@app.route("/adrequest/add/" ,defaults={'id': None})
+@app.route('/adrequest/add/<int:id>')
+@auth_required_sponsor
+def add_adrequest(id=None):
+    campaign=None
+    sponid=session.get("user_id")
+    campaigns=Campaign.query.filter_by(sponsor_id=sponid)
+    influencer=Influencer.query.all()
+    if id:
+        campaign=Campaign.query.get(id)
+        if campaign:
+            if campaign.sponsor_id == sponid:
+                return render_template("addadrequest.html",default_campaign_id=campaign.campaign_id,campaigns=campaigns,influencers=influencer)
+    
+    
+    return render_template("addadrequest.html",campaigns=campaigns,influencers=influencer)
+        
+@app.route("/adrequest/add/<int:id>",methods=["post"])
+@auth_required_sponsor
+def add_adrequest_post(id):
+    sponsor_id=session.get("user_id")
+    cgn=Campaign.query.get(id)
+    if not cgn:
+        flash("Unauthorised access")
+        return(redirect(url_for("view_adrequest")))
+    if cgn.sponsor_id!=sponsor_id:
+        flash("Unauthorised access")
+        return(redirect(url_for("view_adrequest")))
+
+
+    campaign_id = request.form.get('campaign_id')
+    influencer_id = request.form.get('influencer_id')
+    sponsor_negotiation_amount = request.form.get('sponsor_negotiation_amount')
+    messages = request.form.get('messages')
+    
+    adrequest=AdRequest(campaign_id=campaign_id,influencer_id=influencer_id,sponsor_negotiation_amount=sponsor_negotiation_amount
+                        ,sponsor_id=sponsor_id,status="Pending")
+    db.session.add(adrequest)
+    db.session.commit()
+    return redirect(url_for("view_adrequest"))
+
+    
+
+
+
+        
+    
+
+
+    
+
+
+
 
 
         
