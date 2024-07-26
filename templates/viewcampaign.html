@@ -38,6 +38,12 @@
                     <form action="{{ url_for('delete_campaign', id=campaign.campaign_id) }}" method="post" style="display:inline;">
                         <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this campaign?');">Delete</button>
                     </form>
+                    
+                    
+                    <a href="{{url_for('add_adrequest', id=campaign.campaign_id)  }}" class="btn btn-success btn-sm">Add adrequest</a>
+
+
+                    
                 </td>
             </tr>
             {% endfor %}

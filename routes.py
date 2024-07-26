@@ -3,7 +3,7 @@ from flask import render_template,request,url_for,flash,redirect,session
 
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
-from models import Sponsor,db,Influencer,Admin,Campaign,AdRequest
+from models import Sponsor,db,Influencer,Admin,Campaign,AdRequest,Message
 
 import datetime
 #----
@@ -500,15 +500,10 @@ def delete_campaign(id):
         return redirect(url_for("view_campaign"))
     
 
-@app.route("/adrequest/view")
-def view_adrequest():
-    return("Your adrequests")
-
-@app.route("/adrequest/add/" ,defaults={'id': None})
 @app.route('/adrequest/add/<int:id>')
 @auth_required_sponsor
-def add_adrequest(id=None):
-    campaign=None
+def add_adrequest(id):
+    
     sponid=session.get("user_id")
     campaigns=Campaign.query.filter_by(sponsor_id=sponid)
     influencer=Influencer.query.all()
@@ -520,7 +515,9 @@ def add_adrequest(id=None):
     
     
     return render_template("addadrequest.html",campaigns=campaigns,influencers=influencer)
-        
+
+
+      
 @app.route("/adrequest/add/<int:id>",methods=["post"])
 @auth_required_sponsor
 def add_adrequest_post(id):
@@ -541,32 +538,133 @@ def add_adrequest_post(id):
     
     adrequest=AdRequest(campaign_id=campaign_id,influencer_id=influencer_id,sponsor_negotiation_amount=sponsor_negotiation_amount
                         ,sponsor_id=sponsor_id,status="Pending")
+    
+
     db.session.add(adrequest)
+
     db.session.commit()
-    return redirect(url_for("view_adrequest"))
+    message=Message(sender_id=sponsor_id, sender_type="Sponsor",message=messages,ad_request_id=adrequest.ad_request_id)
+
+    db.session.add(message)
+
+
+    db.session.commit()
+    return redirect(url_for("view_all_adrequests"))
 
     
+@app.route('/adrequest/view/<int:ad_request_id>', methods=['GET'])
+@auth_required_sponsor
+def view_adrequest(ad_request_id):
+    ad_request=AdRequest.query.get(ad_request_id)
+    sponid=session.get("user_id")
+    if not ad_request:
+        flash("Not found")
+        return redirect(url_for("view_all_adrequests"))
+
+    if ad_request.sponsor_id!=sponid:
+        flash("Unauthorised access")
+        return redirect(url_for("view_all_adrequests"))
+    
+    message=Message.query.filter_by(ad_request_id=ad_request_id).first()
+    influencer=Influencer.query.get(ad_request.influencer_id)
+    campaign=Campaign.query.get(ad_request.campaign_id)
+    return render_template('viewadrequest.html', ad_request=ad_request,messages=message.message,influencer=influencer.name,campaign=campaign.name)
 
 
+@app.route('/adrequest/view/')
+@auth_required_sponsor
+def view_all_adrequests():
+    sponid=session.get("user_id")
+    adrequests=AdRequest.query.filter_by(sponsor_id=sponid)
+    return(render_template("viewalladrequests.html",ad_requests=adrequests))
 
         
     
+@app.route('/adrequest/delete/<int:ad_request_id>', methods=['POST'])
+@auth_required_sponsor
 
+def delete_adrequest(ad_request_id):
+    sponid=session.get("user_id")
+    ad_request = AdRequest.query.get(ad_request_id)
+    if not ad_request:
+        flash("Ad request does not exist")
+        return redirect(url_for('view_adrequests'))
+    if ad_request.sponsor_id!=sponid:
+        flash("Unauthorised access")
+    
+    db.session.delete(ad_request)
+    db.session.commit()
+    flash('Ad Request deleted successfully!', 'success')
+    return redirect(url_for('view_all_adrequests'))
+
+
+
+@app.route('/adrequest/edit/<int:ad_request_id>/', methods=['GET', 'POST'])
+@auth_required_sponsor
+def edit_adrequest(ad_request_id):
+    sponid=session.get("user_id")
+    ad_request = AdRequest.query.get(ad_request_id)
+    if not ad_request:
+        flash("Ad request does not exist")
+        return redirect(url_for('view_adrequests'))
+    if ad_request.sponsor_id!=sponid:
+        flash("Unauthorised access")
+
+    if request.method == 'POST':
+        ad_request.campaign_id = request.form.get('campaign_id')
+        ad_request.influencer_id = request.form.get('influencer_id')
+        ad_request.sponsor_negotiation_amount = request.form.get('sponsor_negotiation_amount')
+        ad_request.status = request.form.get('status')
+        
+        db.session.commit()
+        flash('Ad Request updated successfully!', 'success')
+        return redirect(url_for('view_ad_request', ad_request_id=ad_request.ad_request_id))
 
     
+    influencers = Influencer.query.all()
+    cid=ad_request.campaign_id
+    campaign=(Campaign.query.get(cid))
+    message=Message.query.filter_by(ad_request_id=ad_request_id).first()
+    
+    return render_template('editadrequest.html', ad_request=ad_request, influencers=influencers,campaign_name=campaign.name,message=message.message)
+    
 
+@app.route('/messages/<int:ad_request_id>', methods=['GET', 'POST'])
+@auth_required
+def messages(ad_request_id):
+    user_id = session.get('user_id')
+    user_type = 'Sponsor' if user_id.startswith('SP') else 'Influencer'
+    
+    ad_request = AdRequest.query.get(ad_request_id)
+    if not ad_request:
+        flash('Ad request not found')
+        return redirect(url_for('index'))
 
+    # Verify that the current user is involved in the ad request
+    if (user_type == 'Sponsor' and ad_request.sponsor_id != user_id) or \
+       (user_type == 'Influencer' and ad_request.influencer_id != user_id):
+        flash('Unauthorized access')
+        return redirect(url_for('index'))
+    
+    # Fetch messages related to the ad request
+    messages = Message.query.filter_by(ad_request_id=ad_request_id).all()
 
-
-
+    if request.method == 'POST':
+        # Handle sending new messages
+        message_text = request.form.get('message')
+        if not message_text:
+            flash('Message cannot be empty')
+            return redirect(url_for('messages', ad_request_id=ad_request_id))
         
+        message = Message(
+            ad_request_id=ad_request_id,
+            sender_id=user_id,
+            sender_type=user_type,
+            message=message_text
+        )
+        db.session.add(message)
+        db.session.commit()
+        flash('Message sent')
+        return redirect(url_for('messages', ad_request_id=ad_request_id))
 
-
-            
-
-
-
-
-
-
-
+    return render_template('messages.html', messages=messages, ad_request=ad_request, user_type=user_type)

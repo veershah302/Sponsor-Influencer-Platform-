@@ -83,24 +83,29 @@ class Campaign(db.Model):
     visibility = db.Column(db.String(20), nullable=False)  # 'Public', 'Private'
     goals = db.Column(db.Text)
 
+
 class AdRequest(db.Model):
     __tablename__ = 'ad_requests'
     ad_request_id = db.Column(db.Integer, primary_key=True)
     campaign_id = db.Column(db.Integer, db.ForeignKey('campaigns.campaign_id'), nullable=False)
-    sponsor_id = db.Column(db.Integer, db.ForeignKey('sponsors.sponsor_id'), nullable=False)
-    influencer_id = db.Column(db.Integer, db.ForeignKey('influencers.influencer_id'), nullable=False)
+    sponsor_id = db.Column(db.String(100), db.ForeignKey('sponsors.sponsor_id'), nullable=False)
+    influencer_id = db.Column(db.String(100), db.ForeignKey('influencers.influencer_id'), nullable=False)
     status = db.Column(db.String(20), nullable=False)  # 'Pending', 'Accepted', 'Rejected'
     sponsor_negotiation_amount = db.Column(db.Float, nullable=True)
     influencer_negotiation_amount = db.Column(db.Float, nullable=True)
+
+
+
 
 class Message(db.Model):
     __tablename__ = 'messages'
     message_id = db.Column(db.Integer, primary_key=True)
     ad_request_id = db.Column(db.Integer, db.ForeignKey('ad_requests.ad_request_id'), nullable=False)
-    sender_id = db.Column(db.Integer, nullable=False)
+    sender_id = db.Column(db.String(100), nullable=False)
     sender_type = db.Column(db.String(20), nullable=False)  # 'Sponsor', 'Influencer'
     message = db.Column(db.Text, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
 
 class Negotiation(db.Model):
     __tablename__ = 'negotiations'

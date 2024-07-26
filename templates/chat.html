@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .chat-container {
+            height: 500px;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .chat-messages {
+            flex: 1;
+            overflow-y: scroll;
+            padding: 10px;
+        }
+        .chat-input {
+            padding: 10px;
+            border-top: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h2>Chat</h2>
+        <div class="chat-container">
+            <div class="chat-messages" id="chat-messages">
+                {% for message in messages %}
+                <div class="message {{ message.sender_type.lower() }}">
+                    <strong>{{ message.sender_type }}:</strong> {{ message.message }}
+                </div>
+                {% endfor %}
+            </div>
+            <div class="chat-input">
+                <form action="{{ url_for('send_message') }}" method="POST">
+                    <input type="hidden" name="ad_request_id" value="{{ ad_request_id }}">
+                    <div class="form-group">
+                        <textarea class="form-control" name="message" rows="3" placeholder="Type your message here..." required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Send</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
