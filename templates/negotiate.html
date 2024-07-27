@@ -1,0 +1,42 @@
+{% extends 'layout.html' %}
+{% block title %}
+    Negotiation
+{% endblock %}
+{% block content %}
+<div class="container mt-5">
+    <h1 class="mb-4">Negotiation for Ad Request</h1>
+    <dl class="row">
+        <dt class="col-sm-3">Campaign</dt>
+        <dd class="col-sm-9">{{ ad_request.campaign_id }}</dd>
+
+        <dt class="col-sm-3">Sponsor</dt>
+        <dd class="col-sm-9">{{ ad_request.sponsor_id }}</dd>
+
+        <dt class="col-sm-3">Influencer</dt>
+        <dd class="col-sm-9">{{ ad_request.influencer_id }}</dd>
+
+        <dt class="col-sm-3">Current Status</dt>
+        <dd class="col-sm-9">{{ ad_request.status }}</dd>
+
+        <dt class="col-sm-3">Latest Sponsor Negotiation Amount</dt>
+        <dd class="col-sm-9">{{ latest_negotiation.sponsor_negotiation_amount if latest_negotiation else 'N/A' }}</dd>
+
+        <dt class="col-sm-3">Latest Influencer Negotiation Amount</dt>
+        <dd class="col-sm-9">{{ latest_negotiation.influencer_negotiation_amount if latest_negotiation else 'N/A' }}</dd>
+    </dl>
+
+    <form method="post">
+        <div class="form-group">
+            <label for="amount">Negotiation Amount</label>
+            <input type="number" step="0.01" class="form-control" id="amount" name="amount" required>
+        </div>
+        <div class="form-group mt-3">
+            <button type="submit" name="action" value="negotiate" class="btn btn-primary">Negotiate</button>
+            {% if user_id.endswith('SP') %}
+            <button type="submit" name="action" value="accept" class="btn btn-success">Accept</button>
+            {% endif %}
+            <button type="submit" name="action" value="reject" class="btn btn-danger">Reject</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

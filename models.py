@@ -91,8 +91,8 @@ class AdRequest(db.Model):
     sponsor_id = db.Column(db.String(100), db.ForeignKey('sponsors.sponsor_id'), nullable=False)
     influencer_id = db.Column(db.String(100), db.ForeignKey('influencers.influencer_id'), nullable=False)
     status = db.Column(db.String(20), nullable=False)  # 'Pending', 'Accepted', 'Rejected'
-    sponsor_negotiation_amount = db.Column(db.Float, nullable=True)
-    influencer_negotiation_amount = db.Column(db.Float, nullable=True)
+    acceptedamount = db.Column(db.Float, nullable=True)
+    
 
 
 
