@@ -534,9 +534,9 @@ def add_adrequest_post(id):
     campaign_id = request.form.get('campaign_id')
     influencer_id = request.form.get('influencer_id')
     sponsor_negotiation_amount = request.form.get('sponsor_negotiation_amount')
-    messages = request.form.get('messages')
+    requirements = request.form.get('requirements')
     
-    adrequest=AdRequest(campaign_id=campaign_id,influencer_id=influencer_id,sponsor_id=sponsor_id,status="Pending")
+    adrequest=AdRequest(campaign_id=campaign_id,influencer_id=influencer_id,sponsor_id=sponsor_id,status="Pending",requirements=requirements)
     
 
     db.session.add(adrequest)
@@ -545,9 +545,7 @@ def add_adrequest_post(id):
 
 
     negotiation=Negotiation(sponsor_id=sponsor_id,influencer_id=influencer_id,sponsor_negotiation_amount=sponsor_negotiation_amount,ad_request_id=adrequest.ad_request_id)
-    message=Message(sender_id=sponsor_id, sender_type="Sponsor",message=messages,ad_request_id=adrequest.ad_request_id)
-
-    db.session.add(message)
+    
 
     db.session.add(negotiation)
     db.session.commit()
@@ -567,12 +565,13 @@ def view_adrequest(ad_request_id):
         flash("Unauthorised access")
         return redirect(url_for("view_all_adrequests"))
     
-    message=Message.query.filter_by(ad_request_id=ad_request_id).first()
+    
     influencer=Influencer.query.get(ad_request.influencer_id)
     campaign=Campaign.query.get(ad_request.campaign_id)
     sponsor=Negotiation.query.filter_by(ad_request_id=ad_request_id).first()
     sponsor_negotiation_amount=sponsor.sponsor_negotiation_amount
-    return render_template('viewadrequest.html', ad_request=ad_request,messages=message.message,influencer=influencer.name,campaign=campaign.name,sponsor_negotiation_amount=sponsor_negotiation_amount)
+
+    return render_template('viewadrequest.html', ad_request=ad_request,influencer=influencer.name,campaign=campaign.name,sponsor_negotiation_amount=sponsor_negotiation_amount)
 
 
 @app.route('/adrequest/view/')
@@ -580,6 +579,7 @@ def view_adrequest(ad_request_id):
 def view_all_adrequests():
     sponid=session.get("user_id")
     adrequests=AdRequest.query.filter_by(sponsor_id=sponid)
+    
     return(render_template("viewalladrequests.html",ad_requests=adrequests))
 
         
@@ -615,24 +615,30 @@ def edit_adrequest(ad_request_id):
         flash("Unauthorised access")
 
     if request.method == 'POST':
-        ad_request.campaign_id = request.form.get('campaign_id')
-        ad_request.influencer_id = request.form.get('influencer_id')
         
-        ad_request.status = request.form.get('status')
         
+       
+        requirements=request.form.get('requirements')
+
+        if not ( requirements):
+            flash("fill the requirements")
+            return redirect(url_for('view_ad_request', ad_request_id=ad_request.ad_request_id))
+
+        ad_request.requirements=requirements
         db.session.commit()
         flash('Ad Request updated successfully!', 'success')
-        return redirect(url_for('view_ad_request', ad_request_id=ad_request.ad_request_id))
+        return redirect(url_for('view_adrequest', ad_request_id=ad_request.ad_request_id))
 
     
     influencers = Influencer.query.all()
     cid=ad_request.campaign_id
     campaign=(Campaign.query.get(cid))
-    message=Message.query.filter_by(ad_request_id=ad_request_id).first()
-    sponsor_negotiation_amount=Negotiation.query.filter_by(ad_request_id=ad_request_id).order_by(desc(Negotiation.timestamp)).first()
+    requirements=ad_request.requirements
+    latest_negotiation = Negotiation.query.filter_by(ad_request_id=ad_request_id).order_by(Negotiation.timestamp.desc()).first()
 
     
-    return render_template('editadrequest.html', ad_request=ad_request, influencers=influencers,campaign_name=campaign.name,message=message.message,sponsor_negotiation_amount=sponsor_negotiation_amount)
+    return render_template('editadrequest.html', ad_request=ad_request, influencers=influencers,campaign_name=campaign.name,requirements=requirements,sponsor_negotiation_amount=latest_negotiation.sponsor_negotiation_amount)
+
     
 
 @app.route('/messages/<int:ad_request_id>', methods=['GET', 'POST'])
@@ -703,22 +709,23 @@ def view_adrequest_influencer(ad_request_id):
     campaign = Campaign.query.get(ad_request.campaign_id).name
     sponsor = Sponsor.query.get(ad_request.sponsor_id).name
     messages = Message.query.filter_by(ad_request_id=ad_request_id).all()
+    latest_negotiation = Negotiation.query.filter_by(ad_request_id=ad_request_id).order_by(Negotiation.timestamp.desc()).first()
 
-    return render_template('viewadrequestinfluencer.html', ad_request=ad_request, campaign=campaign, sponsor=sponsor, messages=messages)
 
+    return render_template('viewadrequestinfluencer.html', ad_request=ad_request, campaign=campaign, sponsor=sponsor, messages=messages,sponsor_negotiation_amount=latest_negotiation.sponsor_negotiation_amount, influencer_negotiation_amount=latest_negotiation.influencer_negotiation_amount)
 
 @app.route('/negotiate/<int:ad_request_id>', methods=['GET', 'POST'])
 @auth_required
 def negotiate(ad_request_id):
-    user_id=session.get("user_id")
+    user_id = session.get("user_id")
     ad_request = AdRequest.query.get(ad_request_id)
     if not ad_request:
         flash("Ad request not found.")
-        return redirect(url_for('home'))
+        return redirect(url_for('index'))
 
     latest_negotiation = Negotiation.query.filter_by(ad_request_id=ad_request_id).order_by(Negotiation.timestamp.desc()).first()
 
-    if request.method == 'POST':
+    if request.method == 'POST' and ad_request.status != 'Accepted':
         user_id = session.get("user_id")
         user_type = 'Sponsor' if user_id.endswith('SP') else 'Influencer'
         amount = float(request.form.get('amount'))
@@ -747,17 +754,85 @@ def negotiate(ad_request_id):
             ad_request.status = 'Accepted'
             db.session.commit()
             flash('Negotiation accepted and amount updated.')
-            return redirect(url_for('index'))
 
         elif action == 'reject':
             ad_request.status = 'Rejected'
             db.session.commit()
             flash('Negotiation rejected.')
-            return redirect(url_for('index'))
 
         flash('Negotiation amount submitted.')
         return redirect(url_for('negotiate', ad_request_id=ad_request_id))
 
-    return render_template('negotiate.html', ad_request=ad_request, latest_negotiation=latest_negotiation,user_id=user_id)
+    return render_template('negotiate.html', ad_request=ad_request, latest_negotiation=latest_negotiation, user_id=user_id)
 
+@app.route('/search_influencers', methods=['GET', 'POST'])
+@auth_required_sponsor
+def search_influencers():
+    if request.method == 'POST':
+        reach_min = request.form.get('reach_min')
+        reach_max = request.form.get('reach_max')
+        niche = request.form.get('niche')
+        category = request.form.get('category')
+
+        filters = []
+        if reach_min:
+            filters.append(Influencer.reach >= int(reach_min))
+        if reach_max:
+            filters.append(Influencer.reach <= int(reach_max))
+        if niche:
+            filters.append(Influencer.niche.ilike(f'%{niche}%'))
+        if category:
+            filters.append(Influencer.category.ilike(f'%{category}%'))
+
+        influencers = Influencer.query.filter(*filters).all()
+
+        return render_template('search_results.html', influencers=influencers)
+
+    return render_template('search_influencers.html')
+
+
+@app.route('/influencer/<string:influencer_id>')
+@auth_required_sponsor
+def view_influencer_profile(influencer_id):
+    influencer = Influencer.query.get(influencer_id)
+    if not influencer:
+        flash("Influencer not found.")
+        return redirect(url_for('search_influencers'))
+    return render_template('influencer_profile_sp.html', influencer=influencer)
+
+
+@app.route('/search_campaigns', methods=['GET', 'POST'])
+@auth_required
+def search_campaigns():
+    if request.method == 'POST':
+        search_term = request.form.get('search_term')
+        start_date = request.form.get('start_date')
+        end_date = request.form.get('end_date')
+
+        query = Campaign.query.join(Sponsor, Campaign.sponsor_id == Sponsor.sponsor_id).filter(Campaign.visibility == 'Public')
+
+        if search_term:
+            query = query.filter(
+                (Campaign.name.ilike(f"%{search_term}%")) |
+                (Campaign.goals.ilike(f"%{search_term}%"))
+            )
+
+        if start_date:
+            query = query.filter(Campaign.start_date >= start_date)
+
+        if end_date:
+            query = query.filter(Campaign.end_date <= end_date)
+
+        campaigns = query.all()
+
+        return render_template('search_campaigns.html', campaigns=campaigns)
+
+    return render_template('search_campaigns.html', campaigns=[])
+
+@app.route('/campaign/<int:campaign_id>', methods=['GET'])
+@auth_required
+def view_campaign_inf(campaign_id):
+    campaign = Campaign.query.get_or_404(campaign_id)
+    sponsor = Sponsor.query.get(campaign.sponsor_id)
+    return render_template('view_campaign.html', campaign=campaign, sponsor=sponsor)
 

@@ -1,0 +1,24 @@
+{% extends 'layout.html' %}
+{% block title %}
+    Search Results
+{% endblock %}
+{% block content %}
+<div class="container mt-5">
+    <h1 class="mb-4">Search Results</h1>
+    {% if influencers %}
+        <ul class="list-group">
+            {% for influencer in influencers %}
+                <li class="list-group-item">
+                    <h5>{{ influencer.name }}</h5>
+                    <p>Reach: {{ influencer.reach }}</p>
+                    <p>Niche: {{ influencer.niche }}</p>
+                    <p>Category: {{ influencer.category }}</p>
+                    <a href="{{ url_for('view_influencer_profile', influencer_id=influencer.influencer_id) }}" class="btn btn-primary">View Profile</a>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No influencers found.</p>
+    {% endif %}
+</div>
+{% endblock %}

@@ -92,6 +92,7 @@ class AdRequest(db.Model):
     influencer_id = db.Column(db.String(100), db.ForeignKey('influencers.influencer_id'), nullable=False)
     status = db.Column(db.String(20), nullable=False)  # 'Pending', 'Accepted', 'Rejected'
     acceptedamount = db.Column(db.Float, nullable=True)
+    requirements=db.Column(db.Text, nullable=False, default="N/A")
     
 
 

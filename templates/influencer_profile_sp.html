@@ -1,0 +1,19 @@
+{% extends 'layout.html' %}
+{% block title %}
+    {{ influencer.name }} Profile Page
+{% endblock %}
+{% block content %}
+<div class="container mt-5">
+    <h1 class="mb-4">{{ influencer.name }}'s Profile</h1>
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">{{ influencer.name }}</h5>
+            <p class="card-text">Username: {{ influencer.username }}</p>
+            <p class="card-text">Email: {{ influencer.email }}</p>
+            <p class="card-text">Reach: {{ influencer.reach }}</p>
+            <p class="card-text">Category: {{ influencer.category }}</p>
+            <p class="card-text">Niche: {{ influencer.niche }}</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

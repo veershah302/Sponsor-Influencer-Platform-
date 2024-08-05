@@ -1,0 +1,43 @@
+{% extends 'layout.html' %}
+{% block title %}
+    Search Campaigns
+{% endblock %}
+{% block content %}
+<div class="container mt-5">
+    <h1 class="mb-4">Search Campaigns</h1>
+    <form class="row g-3" method="post">
+        <div class="col-md-3">
+            <input type="text" class="form-control" name="search_term" placeholder="Name, Visibility, Goals">
+        </div>
+        <div class="col-md-3">
+            <input type="date" class="form-control" name="start_date" placeholder="Start Date">
+        </div>
+        <div class="col-md-3">
+            <input type="date" class="form-control" name="end_date" placeholder="End Date">
+        </div>
+        <div class="col-md-3 d-flex align-items-center">
+            <button type="submit" class="btn btn-primary">Search</button>
+        </div>
+    </form>
+
+    <div class="mt-5">
+        {% if campaigns %}
+            <h2 class="mb-4">Results</h2>
+            <ul class="list-group">
+                {% for campaign in campaigns %}
+                    <li class="list-group-item">
+                        <a href="{{ url_for('view_campaign_inf', campaign_id=campaign.campaign_id) }}">
+                            {{ campaign.name }} - {{ campaign.visibility }}
+                        </a>
+                        <p>{{ campaign.description }}</p>
+                        <small>Start Date: {{ campaign.start_date }}</small><br>
+                        <small>End Date: {{ campaign.end_date }}</small>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>No campaigns found.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

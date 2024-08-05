@@ -1,0 +1,29 @@
+{% extends 'layout.html' %}
+{% block title %}
+    Campaign Details
+{% endblock %}
+{% block content %}
+<div class="container mt-5">
+    <h1 class="mb-4">{{ campaign.name }}</h1>
+    <dl class="row">
+        <dt class="col-sm-3">Sponsor Name</dt>
+        <dd class="col-sm-9">{{ sponsor.name }}</dd>
+
+        <dt class="col-sm-3">Sponsor Username</dt>
+        <dd class="col-sm-9">{{ sponsor.username }}</dd>
+
+        <dt class="col-sm-3">Description</dt>
+        <dd class="col-sm-9">{{ campaign.description }}</dd>
+
+        <dt class="col-sm-3">Start Date</dt>
+        <dd class="col-sm-9">{{ campaign.start_date }}</dd>
+
+        <dt class="col-sm-3">End Date</dt>
+        <dd class="col-sm-9">{{ campaign.end_date }}</dd>
+
+        <dt class="col-sm-3">Goals</dt>
+        <dd class="col-sm-9">{{ campaign.goals }}</dd>
+    </dl>
+    <a href="#" class="btn btn-primary mt-3">Generate Ad Request</a>
+</div>
+{% endblock %}
