@@ -40,7 +40,7 @@
     </dl>
 
     <a href="{{ url_for('messages', ad_request_id=ad_request.ad_request_id) }}" class="btn btn-primary mt-3">View Messages</a>
-    {% if ad_request.status != 'Accepted' %}
+    {% if ad_request.status != 'Accepted' and ad_request.status != 'Rejected'%}
     <a href="{{ url_for('negotiate', ad_request_id=ad_request.ad_request_id) }}" class="btn btn-warning mt-3">Negotiate</a>
     {% endif %}
 </div>

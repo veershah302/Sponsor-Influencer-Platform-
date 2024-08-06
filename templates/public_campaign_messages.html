@@ -1,0 +1,24 @@
+{% extends 'layout.html' %}
+
+{% block title %}
+    Public Campaign Messages
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Messages for Public Campaigns</h2>
+    {% if campaigns_with_messages %}
+        <div class="list-group">
+            {% for campaign, message in campaigns_with_messages %}
+                <a href="{{ url_for('campaign_messages', campaign_id=campaign.campaign_id) }}" class="list-group-item list-group-item-action">
+                    <h5 class="mb-1">{{ campaign.name }}</h5>
+                    <p class="mb-1">{{ message.message }}</p>
+                    <small>From: {{ message.sender_id }} - {{ message.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</small>
+                </a>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>No messages available for public campaigns.</p>
+    {% endif %}
+</div>
+{% endblock %}

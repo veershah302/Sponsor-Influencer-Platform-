@@ -28,6 +28,8 @@
               
 
               {% if 'user_id' in session %}
+
+
               
                 {% if session['user_id'].startswith('SP') %}
               <li class="nav-item">
@@ -36,11 +38,44 @@
               <li class="nav-item">
               <a class="nav-link" href="{{ url_for('view_campaign') }}">Campaigns</a>
               </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('view_all_adrequests') }}">Adrequests</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#">Public Campaign Messages</a>
+              </li>  
+              
+              <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('search_influencers') }}">Search Influencers</a>
+              </li>
+
+              <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('public_campaign_messages') }}">Public Campaign Messages</a>
+            </li>
+            
+
+
+
 
               {% elif session['user_id'].startswith('INF') %}
               <li class="nav-item">
               <a class="nav-link" href="{{ url_for('influencerprofile') }}">Profile</a>
               </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('infview_all_adrequests') }}">Adrequests</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('search_campaigns') }}">Search Campaigns</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('influencerprofile') }}">Public Campaign Messages</a>
+              </li>
+
+              <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('public_campaign_messages') }}">Public Campaign Messages</a>
+            </li>
+            
+
               {% elif session['user_id'].startswith('AD') %}
               <li class="nav-item">
               <a class="nav-link" href="{{ url_for('adminprofile') }}">Profile</a>

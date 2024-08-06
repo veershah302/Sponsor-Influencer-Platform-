@@ -3,7 +3,7 @@ from flask import render_template,request,url_for,flash,redirect,session
 
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
-from models import Sponsor,db,Influencer,Admin,Campaign,AdRequest,Message,Negotiation
+from models import Sponsor,db,Influencer,Admin,Campaign,AdRequest,Message,Negotiation,CampaignMessage
 
 import datetime
 #----
@@ -58,6 +58,20 @@ def auth_required(func):
 @app.route("/")
 @auth_required
 def index():
+    user_id=session.get("user_id")
+
+    if user_id.startswith('SP'):
+        user_type = 'Sponsor'
+    elif user_id.startswith('INF'):
+        user_type = 'Influencer'
+    else:
+        user_type="Admin"
+
+    if user_type=='Sponsor':
+        return(redirect(url_for("view_campaign")))
+    elif user_type=="Influencer":
+        return(redirect(url_for("infview_all_adrequests")))
+    
     return render_template("index.html")
 
 @app.route("/register")
@@ -645,7 +659,12 @@ def edit_adrequest(ad_request_id):
 @auth_required
 def messages(ad_request_id):
     user_id = session.get('user_id')
-    user_type = 'Sponsor' if user_id.startswith('SP') else 'Influencer'
+    if user_id.startswith('SP'):
+        user_type = 'Sponsor'
+    elif user_id.startswith('INF'):
+        user_type = 'Influencer'
+    else:
+        user_type="Admin"
     
     ad_request = AdRequest.query.get(ad_request_id)
     if not ad_request:
@@ -725,9 +744,21 @@ def negotiate(ad_request_id):
 
     latest_negotiation = Negotiation.query.filter_by(ad_request_id=ad_request_id).order_by(Negotiation.timestamp.desc()).first()
 
-    if request.method == 'POST' and ad_request.status != 'Accepted':
+    if request.method == 'POST' and (ad_request.status == 'Accepted' or ad_request.status == 'Rejected'):
+        flash("Request already rejected or accepted")
+        return(redirect(url_for("negotiate",ad_request_id=ad_request_id)))
+
+
+
+    if request.method == 'POST' and ad_request.status != 'Accepted' and ad_request.status != 'Rejected':
+
         user_id = session.get("user_id")
-        user_type = 'Sponsor' if user_id.endswith('SP') else 'Influencer'
+        if user_id.startswith('SP'):
+            user_type = 'Sponsor'
+        elif user_id.startswith('INF'):
+            user_type = 'Influencer'
+        else:
+            user_type="Admin"
         amount = float(request.form.get('amount'))
         action = request.form.get('action')
 
@@ -800,10 +831,14 @@ def view_influencer_profile(influencer_id):
         return redirect(url_for('search_influencers'))
     return render_template('influencer_profile_sp.html', influencer=influencer)
 
-
 @app.route('/search_campaigns', methods=['GET', 'POST'])
 @auth_required
 def search_campaigns():
+    search_term = ""
+    start_date = ""
+    end_date = ""
+    campaigns = []
+
     if request.method == 'POST':
         search_term = request.form.get('search_term')
         start_date = request.form.get('start_date')
@@ -825,14 +860,166 @@ def search_campaigns():
 
         campaigns = query.all()
 
-        return render_template('search_campaigns.html', campaigns=campaigns)
+    return render_template('search_campaigns.html', campaigns=campaigns, search_term=search_term, start_date=start_date, end_date=end_date)
 
-    return render_template('search_campaigns.html', campaigns=[])
 
 @app.route('/campaign/<int:campaign_id>', methods=['GET'])
-@auth_required
+@auth_required_influencer
 def view_campaign_inf(campaign_id):
     campaign = Campaign.query.get_or_404(campaign_id)
+    if campaign.visibility=="Private":
+        flash("Unauthorised Access")
+        return (redirect(url_for("index")))
     sponsor = Sponsor.query.get(campaign.sponsor_id)
     return render_template('view_campaign.html', campaign=campaign, sponsor=sponsor)
 
+
+
+
+
+
+@app.route('/messages/campaign/<int:campaign_id>', methods=['GET', 'POST'])
+@auth_required
+def campaign_messages(campaign_id):
+    user_id = session.get('user_id')
+
+    if user_id.startswith('SP'):
+        user_type = 'Sponsor'
+    elif user_id.startswith('INF'):
+        user_type = 'Influencer'
+    else:
+        user_type="Admin"
+
+
+    
+    
+    campaign = Campaign.query.get(campaign_id)
+    if not campaign:
+        flash('Campaign not found')
+        return redirect(url_for('index'))
+
+    if campaign.visibility!="Public":
+        flash("Not a public campaign")
+        return redirect(url_for("index"))
+    
+    
+    # Fetch messages related to the ad request
+    messages = CampaignMessage.query.filter_by(campaign_id=campaign_id).all()
+
+    if request.method == 'POST':
+        # Handle sending new messages
+        message_text = request.form.get('message')
+        if not message_text:
+            flash('Message cannot be empty')
+            return redirect(url_for('campaign_messages', campaign_id=campaign_id))
+        
+        message = CampaignMessage(
+            campaign_id=campaign_id,
+            sender_id=user_id,
+            sender_type=user_type,
+            message=message_text
+        )
+        db.session.add(message)
+        db.session.commit()
+        flash('Message sent')
+        return redirect(url_for('campaign_messages', campaign_id=campaign_id))
+
+    return render_template('campaignmessages.html', messages=messages, campaign=campaign, user_type=user_type)
+
+
+
+
+
+
+@app.route('/influencer/adrequest/view')
+@auth_required_influencer
+def infview_all_adrequests():
+    user_id = session.get('user_id')
+    ad_requests = AdRequest.query.filter_by(influencer_id=user_id).all()
+    
+
+    return render_template('infviewalladrequests.html', ad_requests=ad_requests)
+
+
+@app.route('/accept_adrequest/<int:ad_request_id>', methods=['POST'])
+@auth_required_influencer
+def accept_adrequest(ad_request_id):
+    ad_request = AdRequest.query.get_or_404(ad_request_id)
+    ad_request.status = 'Accepted'
+    db.session.commit()
+    flash('Ad request accepted.')
+    return redirect(url_for('infview_all_adrequests'))
+
+@app.route('/reject_adrequest/<int:ad_request_id>', methods=['POST'])
+@auth_required_influencer
+def reject_adrequest(ad_request_id):
+    ad_request = AdRequest.query.get_or_404(ad_request_id)
+    ad_request.status = 'Rejected'
+    db.session.commit()
+    flash('Ad request rejected.')
+    return redirect(url_for('infview_all_adrequests'))
+
+@app.route('/public_campaign_messages', methods=['GET'])
+@auth_required
+def public_campaign_messages():
+    user_id = session.get('user_id')
+
+    if user_id.startswith('SP'):
+        user_type = 'Sponsor'
+    elif user_id.startswith('INF'):
+        user_type = 'Influencer'
+    else:
+        flash('Unauthorized access')
+        return redirect(url_for('index'))
+
+    # Subquery to get the latest message for each campaign
+    latest_messages_subquery = (
+        db.session.query(
+            CampaignMessage.campaign_id,
+            db.func.max(CampaignMessage.timestamp).label('latest_timestamp')
+        )
+        .group_by(CampaignMessage.campaign_id)
+        .subquery()
+    )
+
+    if user_type == 'Sponsor':
+        # Fetch latest messages where the sponsor is involved
+        latest_messages = (
+            db.session.query(Campaign, CampaignMessage)
+            .select_from(Campaign)
+            .join(latest_messages_subquery, 
+                   (Campaign.campaign_id == latest_messages_subquery.c.campaign_id))
+            .join(CampaignMessage, 
+                  (Campaign.campaign_id == CampaignMessage.campaign_id) &
+                  (CampaignMessage.timestamp == latest_messages_subquery.c.latest_timestamp))
+            .filter(Campaign.visibility == 'Public')
+            .filter(
+                (CampaignMessage.sender_id == user_id) |
+                (Campaign.sponsor_id == user_id)
+            )
+            .order_by(CampaignMessage.timestamp.desc())
+            .all()
+        )
+    else:
+        # Fetch latest messages where the influencer is involved
+        latest_messages = (
+            db.session.query(Campaign, CampaignMessage)
+            .select_from(Campaign)
+            .join(latest_messages_subquery, 
+                   (Campaign.campaign_id == latest_messages_subquery.c.campaign_id))
+            .join(CampaignMessage, 
+                  (Campaign.campaign_id == CampaignMessage.campaign_id) &
+                  (CampaignMessage.timestamp == latest_messages_subquery.c.latest_timestamp))
+            .filter(Campaign.visibility == 'Public')
+            .filter(
+                (CampaignMessage.sender_id == user_id) |
+                (CampaignMessage.campaign_id.in_(
+                    db.session.query(AdRequest.campaign_id)
+                    .filter(AdRequest.influencer_id == user_id)
+                ))
+            )
+            .order_by(CampaignMessage.timestamp.desc())
+            .all()
+        )
+
+    return render_template('public_campaign_messages.html', latest_messages=latest_messages)

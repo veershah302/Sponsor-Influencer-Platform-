@@ -15,6 +15,7 @@
                 
                 <th>Status</th>
                 <th>Actions</th>
+
             </tr>
         </thead>
         <tbody>
@@ -38,6 +39,8 @@
                     </form>
 
                     <a href="{{ url_for('messages', ad_request_id=ad_request.ad_request_id) }}" class="btn btn-warning btn-sm">Message</a>
+                    <a href="{{ url_for('negotiate', ad_request_id=ad_request.ad_request_id) }}" class="btn btn-warning btn-sm">Negotiate</a>
+
 
                 </td>
             </tr>

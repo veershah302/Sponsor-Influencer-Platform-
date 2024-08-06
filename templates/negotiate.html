@@ -46,6 +46,12 @@
     <div class="alert alert-success mt-3">
         This negotiation has been accepted. No further changes are allowed.
     </div>
+
+    {%elif ad_request.status == 'Rejected'%}
+    <div class="alert alert-success mt-3">
+        This negotiation has been rejected. No further changes are allowed.
+    </div>
+
     {% endif %}
 </div>
 {% endblock %}

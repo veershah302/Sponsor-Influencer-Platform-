@@ -92,10 +92,18 @@ class AdRequest(db.Model):
     influencer_id = db.Column(db.String(100), db.ForeignKey('influencers.influencer_id'), nullable=False)
     status = db.Column(db.String(20), nullable=False)  # 'Pending', 'Accepted', 'Rejected'
     acceptedamount = db.Column(db.Float, nullable=True)
-    requirements=db.Column(db.Text, nullable=False, default="N/A")
+    requirements=db.Column(db.Text)
     
 
 
+class CampaignMessage(db.Model):
+    __tablename__ = 'campaignmessages'
+    cmessage_id = db.Column(db.Integer, primary_key=True)
+    campaign_id = db.Column(db.Integer, db.ForeignKey('ad_requests.ad_request_id'), nullable=False)
+    sender_id = db.Column(db.String(100), nullable=False)
+    sender_type = db.Column(db.String(20), nullable=False)  # 'Sponsor', 'Influencer'
+    message = db.Column(db.Text, nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
 
 class Message(db.Model):

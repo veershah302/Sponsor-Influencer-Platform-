@@ -7,13 +7,13 @@
     <h1 class="mb-4">Search Campaigns</h1>
     <form class="row g-3" method="post">
         <div class="col-md-3">
-            <input type="text" class="form-control" name="search_term" placeholder="Name, Visibility, Goals">
+            <input type="text" class="form-control" name="search_term" placeholder="Name, Visibility, Goals" value="{{ search_term }}">
         </div>
         <div class="col-md-3">
-            <input type="date" class="form-control" name="start_date" placeholder="Start Date">
+            <input type="date" class="form-control" name="start_date" placeholder="Start Date" value="{{ start_date }}">
         </div>
         <div class="col-md-3">
-            <input type="date" class="form-control" name="end_date" placeholder="End Date">
+            <input type="date" class="form-control" name="end_date" placeholder="End Date" value="{{ end_date }}">
         </div>
         <div class="col-md-3 d-flex align-items-center">
             <button type="submit" class="btn btn-primary">Search</button>
