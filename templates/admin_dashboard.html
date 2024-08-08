@@ -1,0 +1,90 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Admin Dashboard</h2>
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Total Users</h5>
+                    <p class="card-text">{{ total_users }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Total Sponsors</h5>
+                    <p class="card-text">{{ total_sponsors }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Total Influencers</h5>
+                    <p class="card-text">{{ total_influencers }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Total Campaigns</h5>
+                    <p class="card-text">{{ total_campaigns }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Public Campaigns</h5>
+                    <p class="card-text">{{ public_campaigns }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Private Campaigns</h5>
+                    <p class="card-text">{{ private_campaigns }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Ad Requests</h5>
+                    <p class="card-text">Total: {{ total_ad_requests }}</p>
+                    <p class="card-text">Pending: {{ pending_ad_requests }}</p>
+                    <p class="card-text">Accepted: {{ accepted_ad_requests }}</p>
+                    <p class="card-text">Rejected: {{ rejected_ad_requests }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Campaign Visibility</h5>
+                    <img src="data:image/png;base64,{{ pie_chart_url }}" class="img-fluid" alt="Pie Chart">
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Ad Requests Status</h5>
+                    <img src="data:image/png;base64,{{ bar_chart_url }}" class="img-fluid" alt="Bar Chart">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

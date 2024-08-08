@@ -140,6 +140,28 @@ class FlaggedUser(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
 
+
+def generate_ad_request_proposal_id():
+    last_proposal = AdRequestProposal.query.order_by(AdRequestProposal.adrequestproposal_id.desc()).first()
+    if last_proposal:
+        new_id = last_proposal.adrequestproposal_id + 1
+    else:
+        new_id = 1
+    return new_id
+
+class AdRequestProposal(db.Model):
+    __tablename__ = 'adrequestproposals'
+    adrequestproposal_id = db.Column(db.Integer, primary_key=True, default=generate_ad_request_proposal_id)
+    campaign_id = db.Column(db.Integer, db.ForeignKey('campaigns.campaign_id'), nullable=False)
+    inf_id = db.Column(db.String(100), db.ForeignKey('influencers.influencer_id'), nullable=False)
+    proposal_text = db.Column(db.Text, nullable=False)
+    status = db.Column(db.String(20), nullable=False)  # 'Pending', 'Accepted', 'Rejected'
+
+
+
+
+
+
 # Initialize the database
 with app.app_context():
     db.create_all()

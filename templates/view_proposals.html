@@ -1,0 +1,26 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container mt-5">
+    <h2>Your Proposals</h2>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Campaign</th>
+                <th>Proposal</th>
+                <th>Status</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for proposal in proposals %}
+            <tr>
+                <td>{{ proposal.campaign_id }}</td>
+                <td>{{ proposal.proposal_text }}</td>
+                <td>{{ proposal.status }}</td>
+                <td> </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

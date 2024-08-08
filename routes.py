@@ -3,7 +3,11 @@ from flask import render_template,request,url_for,flash,redirect,session
 
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
-from models import Sponsor,db,Influencer,Admin,Campaign,AdRequest,Message,Negotiation,CampaignMessage
+from models import Sponsor,db,Influencer,Admin,Campaign,AdRequest,Message,Negotiation,CampaignMessage,AdRequestProposal,FlaggedUser
+
+import matplotlib.pyplot as plt
+import io
+import base64
 
 import datetime
 #----
@@ -959,6 +963,8 @@ def reject_adrequest(ad_request_id):
     flash('Ad request rejected.')
     return redirect(url_for('infview_all_adrequests'))
 
+
+
 @app.route('/public_campaign_messages', methods=['GET'])
 @auth_required
 def public_campaign_messages():
@@ -1023,3 +1029,196 @@ def public_campaign_messages():
         )
 
     return render_template('public_campaign_messages.html', latest_messages=latest_messages)
+
+
+
+@app.route('/proposal/send/<int:campaign_id>', methods=['GET', 'POST'])
+@auth_required_influencer
+def send_proposal(campaign_id):
+    user_id = session.get('user_id')
+    user_type = 'Influencer' if user_id.startswith('INF') else None
+    
+    
+    
+    campaign = Campaign.query.get(campaign_id)
+    if not campaign:
+        flash('Campaign not found')
+        return redirect(url_for('index'))
+    
+    if campaign.visibility != 'Public':
+        flash('Only public campaigns can receive proposals')
+        return redirect(url_for('index'))
+    
+    if request.method == 'POST':
+        proposal_text = request.form.get('proposal_text')
+        if not proposal_text:
+            flash('Proposal cannot be empty')
+            return redirect(url_for('send_proposal', campaign_id=campaign_id))
+        
+        proposal = AdRequestProposal(
+            campaign_id=campaign_id,
+            inf_id=user_id,
+            proposal_text=proposal_text,
+            status='Pending'
+        )
+        db.session.add(proposal)
+        db.session.commit()
+        flash('Proposal sent')
+        return redirect(url_for('view_proposals'))
+    
+    return render_template('send_proposal.html', campaign=campaign)
+
+@app.route('/proposals/view', methods=['GET'])
+@auth_required_influencer
+def view_proposals():
+    user_id = session.get('user_id')
+    proposals = AdRequestProposal.query.filter_by(inf_id=user_id).all()
+    return render_template('view_proposals.html', proposals=proposals)
+
+
+
+@app.route('/proposals/manage/<int:proposal_id>', methods=['POST'])
+@auth_required_sponsor
+def manage_proposals(proposal_id):
+    user_id = session.get('user_id')
+    
+    proposal = AdRequestProposal.query.get(proposal_id)
+    
+    if not proposal:
+        flash('Proposal not found')
+        return redirect(url_for('manage_proposals_list'))
+    
+    campaign=Campaign.query.get(proposal.campaign_id)
+    sponid=campaign.sponsor_id
+
+    if sponid != user_id:
+        flash('You do not have permission to manage this proposal')
+        return redirect(url_for('manage_proposals_list'))
+
+    if not proposal.status=="Pending":
+        flash("Once accepted or rejected cannot make change")
+        return(redirect(url_for("manage_proposals_list")))
+    
+
+
+    action = request.form.get('action')
+    if action in ['accept', 'reject']:
+        proposal.status = 'Accepted' if action == 'accept' else 'Rejected'
+        db.session.commit()
+        flash(f'Proposal {action}ed')
+    
+    return redirect(url_for('manage_proposals_list'))
+
+@app.route('/proposals/manage', methods=['GET'])
+@auth_required
+def manage_proposals_list():
+    user_id = session.get('user_id')
+    if user_id.startswith('SP'):
+        user_type = 'Sponsor'
+    else:
+        flash('Only sponsors can manage proposals')
+        return redirect(url_for('index'))
+
+    proposals = AdRequestProposal.query.join(Campaign, AdRequestProposal.campaign_id == Campaign.campaign_id).filter(Campaign.sponsor_id == user_id).all()
+
+    return render_template('manage_proposals.html', proposals=proposals)
+
+
+@app.route('/admin/flag_user/<user_type>/<user_id>', methods=['POST'])
+@auth_required_admin
+def flag_user(user_type, user_id):
+    
+    admin_id = session.get('user_id')
+    action = request.form.get('action')
+    reason = request.form.get('reason')
+
+    if action == 'flag':
+        flagged_user = FlaggedUser(
+            flagged_user_id=user_id,
+            flagged_user_type=user_type,
+            flagged_by_admin_id=admin_id,
+            reason=reason
+        )
+        db.session.add(flagged_user)
+        db.session.commit()
+        flash('User flagged successfully')
+    elif action == 'unflag':
+        flagged_user = FlaggedUser.query.filter_by(flagged_user_id=user_id, flagged_user_type=user_type).first()
+        if flagged_user:
+            db.session.delete(flagged_user)
+            db.session.commit()
+            flash('User unflagged successfully')
+
+    return redirect(url_for('browse_users'))
+
+
+
+@app.route('/admin/browse_users')
+@auth_required_admin
+def browse_users():
+    
+    sponsors = Sponsor.query.all()
+    influencers = Influencer.query.all()
+    flagged_users = FlaggedUser.query.all()
+
+    flagged_sponsor_ids = {f.flagged_user_id for f in flagged_users if f.flagged_user_type == 'Sponsor'}
+    flagged_influencer_ids = {f.flagged_user_id for f in flagged_users if f.flagged_user_type == 'Influencer'}
+
+    return render_template('browse_users.html', sponsors=sponsors, influencers=influencers,
+                           flagged_sponsor_ids=flagged_sponsor_ids, flagged_influencer_ids=flagged_influencer_ids)
+
+
+
+
+
+@app.route('/admin/dashboard')
+@auth_required
+def admin_dashboard():
+    if not session.get('user_id').startswith('AD'):
+        flash('Access denied')
+        return redirect(url_for('index'))
+
+    # Statistics
+    total_users = Sponsor.query.count() + Influencer.query.count()
+    total_sponsors = Sponsor.query.count()
+    total_influencers = Influencer.query.count()
+    total_campaigns = Campaign.query.count()
+    public_campaigns = Campaign.query.filter_by(visibility='Public').count()
+    private_campaigns = Campaign.query.filter_by(visibility='Private').count()
+    total_ad_requests = AdRequest.query.count()
+    pending_ad_requests = AdRequest.query.filter_by(status='Pending').count()
+    accepted_ad_requests = AdRequest.query.filter_by(status='Accepted').count()
+    rejected_ad_requests = AdRequest.query.filter_by(status='Rejected').count()
+
+    # Pie chart for campaign visibility
+    labels = 'Public', 'Private'
+    sizes = [public_campaigns, private_campaigns]
+    colors = ['#ff9999','#66b3ff']
+    fig1, ax1 = plt.subplots()
+    ax1.pie(sizes, labels=labels, colors=colors, autopct='%1.1f%%', startangle=90)
+    ax1.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
+    img1 = io.BytesIO()
+    plt.savefig(img1, format='png')
+    img1.seek(0)
+    pie_chart_url = base64.b64encode(img1.getvalue()).decode()
+
+    # Bar chart for ad requests status
+    labels = ['Pending', 'Accepted', 'Rejected']
+    values = [pending_ad_requests, accepted_ad_requests, rejected_ad_requests]
+    fig2, ax2 = plt.subplots()
+    ax2.bar(labels, values, color=['#ff9999','#66b3ff','#99ff99'])
+    img2 = io.BytesIO()
+    plt.savefig(img2, format='png')
+    img2.seek(0)
+    bar_chart_url = base64.b64encode(img2.getvalue()).decode()
+
+    return render_template('admin_dashboard.html', total_users=total_users, total_sponsors=total_sponsors,
+                           total_influencers=total_influencers, total_campaigns=total_campaigns,
+                           public_campaigns=public_campaigns, private_campaigns=private_campaigns,
+                           total_ad_requests=total_ad_requests, pending_ad_requests=pending_ad_requests,
+                           accepted_ad_requests=accepted_ad_requests, rejected_ad_requests=rejected_ad_requests,
+                           pie_chart_url=pie_chart_url, bar_chart_url=bar_chart_url)
+
+
+
+

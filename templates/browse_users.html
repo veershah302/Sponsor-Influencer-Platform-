@@ -1,0 +1,80 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Browse Users</h2>
+    <h3>Sponsors</h3>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Company</th>
+                <th>Flagged</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for sponsor in sponsors %}
+            <tr>
+                <td>{{ sponsor.sponsor_id }}</td>
+                <td>{{ sponsor.name }}</td>
+                <td>{{ sponsor.company_name }}</td>
+                <td>{{ 'Yes' if sponsor.sponsor_id in flagged_sponsor_ids else 'No' }}</td>
+                <td>
+                    {% if sponsor.sponsor_id in flagged_sponsor_ids %}
+                    <form action="{{ url_for('flag_user', user_type='Sponsor', user_id=sponsor.sponsor_id) }}" method="post" style="display: inline;">
+                        <input type="hidden" name="action" value="unflag">
+                        <button type="submit" class="btn btn-danger">Unflag</button>
+                    </form>
+                    {% else %}
+                    <form action="{{ url_for('flag_user', user_type='Sponsor', user_id=sponsor.sponsor_id) }}" method="post" style="display: inline;">
+                        <input type="hidden" name="action" value="flag">
+                        <textarea name="reason" placeholder="Reason for flagging" required></textarea>
+                        <button type="submit" class="btn btn-warning">Flag</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h3>Influencers</h3>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Category</th>
+                <th>Flagged</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for influencer in influencers %}
+            <tr>
+                <td>{{ influencer.influencer_id }}</td>
+                <td>{{ influencer.name }}</td>
+                <td>{{ influencer.category }}</td>
+                <td>{{ 'Yes' if influencer.influencer_id in flagged_influencer_ids else 'No' }}</td>
+                <td>
+                    {% if influencer.influencer_id in flagged_influencer_ids %}
+                    <form action="{{ url_for('flag_user', user_type='Influencer', user_id=influencer.influencer_id) }}" method="post" style="display: inline;">
+                        <input type="hidden" name="action" value="unflag">
+                        <button type="submit" class="btn btn-danger">Unflag</button>
+                    </form>
+                    {% else %}
+                    <form action="{{ url_for('flag_user', user_type='Influencer', user_id=influencer.influencer_id) }}" method="post" style="display: inline;">
+                        <input type="hidden" name="action" value="flag">
+                        <textarea name="reason" placeholder="Reason for flagging" required></textarea>
+                        <button type="submit" class="btn btn-warning">Flag</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

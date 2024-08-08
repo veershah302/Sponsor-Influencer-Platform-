@@ -24,6 +24,6 @@
         <dt class="col-sm-3">Goals</dt>
         <dd class="col-sm-9">{{ campaign.goals }}</dd>
     </dl>
-    <a href={{ url_for("campaign_messages", campaign_id=campaign.campaign_id) }} class="btn btn-primary mt-3">Message the sponsor for creating a adrequest</a>
+    <a href={{ url_for("send_proposal", campaign_id=campaign.campaign_id) }} class="btn btn-primary mt-3">Message the sponsor for adrequest proposal</a>
 </div>
 {% endblock %}
