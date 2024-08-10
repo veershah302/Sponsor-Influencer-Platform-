@@ -1,12 +1,10 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Messages</title>
-    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
+{% extends "layout.html" %}
+
+{% block title %}
+    Messages for Ad Request #{{ ad_request.ad_request_id }}
+{% endblock %}
+
+{% block content %}
     <div class="container mt-5">
         <h2>Messages for Ad Request #{{ ad_request.ad_request_id }}</h2>
         <div class="card">
@@ -28,7 +26,9 @@
             <button type="submit" class="btn btn-primary">Send</button>
         </form>
     </div>
+{% endblock %}
 
+{% block style %}
     <style>
         .chat-box {
             max-height: 400px;
@@ -51,5 +51,5 @@
             border-radius: 5px;
         }
     </style>
-</body>
-</html>
+{% endblock %}
+

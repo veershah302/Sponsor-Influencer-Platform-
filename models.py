@@ -1,6 +1,7 @@
 from app import app
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash
+
 db=SQLAlchemy(app)
 
 
@@ -83,6 +84,10 @@ class Campaign(db.Model):
     visibility = db.Column(db.String(20), nullable=False)  # 'Public', 'Private'
     goals = db.Column(db.Text)
 
+    # Cascade delete AdRequestProposal and ad_requests when Campaign is deleted
+    ad_requests = db.relationship('AdRequest', backref='campaign', cascade="all, delete-orphan")
+    ad_request_proposals = db.relationship('AdRequestProposal', backref='campaign', cascade="all, delete-orphan")
+
 
 class AdRequest(db.Model):
     __tablename__ = 'ad_requests'
@@ -93,17 +98,13 @@ class AdRequest(db.Model):
     status = db.Column(db.String(20), nullable=False)  # 'Pending', 'Accepted', 'Rejected'
     acceptedamount = db.Column(db.Float, nullable=True)
     requirements=db.Column(db.Text)
+
+    # Cascade delete Message and Negotiation when AdRequest is deleted
+    messages = db.relationship('Message', backref='ad_request', cascade="all, delete-orphan")
+    negotiations = db.relationship('Negotiation', backref='ad_request', cascade="all, delete-orphan")
+
     
 
-
-class CampaignMessage(db.Model):
-    __tablename__ = 'campaignmessages'
-    cmessage_id = db.Column(db.Integer, primary_key=True)
-    campaign_id = db.Column(db.Integer, db.ForeignKey('ad_requests.ad_request_id'), nullable=False)
-    sender_id = db.Column(db.String(100), nullable=False)
-    sender_type = db.Column(db.String(20), nullable=False)  # 'Sponsor', 'Influencer'
-    message = db.Column(db.Text, nullable=False)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
 
 class Message(db.Model):
@@ -139,6 +140,7 @@ class FlaggedUser(db.Model):
     reason = db.Column(db.Text, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+
 
 
 def generate_ad_request_proposal_id():

@@ -3,35 +3,75 @@ from flask import render_template,request,url_for,flash,redirect,session
 
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
-from models import Sponsor,db,Influencer,Admin,Campaign,AdRequest,Message,Negotiation,CampaignMessage,AdRequestProposal,FlaggedUser
+from models import Sponsor,db,Influencer,Admin,Campaign,AdRequest,Message,Negotiation,AdRequestProposal,FlaggedUser
 
 import matplotlib.pyplot as plt
 import io
 import base64
 
 import datetime
+
+
+def no_flagged_users_allowed(func):
+    @wraps(func)
+    def inner(*args, **kwargs):
+        user_id = session.get('user_id')
+        if user_id:
+            flagged_user = FlaggedUser.query.filter_by(flagged_user_id=user_id).first()
+            if flagged_user:
+                flash('Your account has been flagged. Please contact support.')
+                return redirect(url_for('home'))  # Redirect to the home page or a custom page
+            else:
+                return func(*args, **kwargs)
+        else:
+            flash('Please log in to continue.')
+            return redirect(url_for('login'))
+    return inner
+
+
+
+
+
 #----
 #decorator for authorisation
+def is_user_flagged(user_id, user_type):
+    flagged_user = FlaggedUser.query.filter_by(flagged_user_id=user_id, flagged_user_type=user_type).first()
+    if flagged_user:
+        return (True,flagged_user)
+    return (False,None)
+
+
 def auth_required_sponsor(func):
     @wraps(func)
     def inner(*args, **kwargs):
         user_id = session.get('user_id')
-        if user_id and user_id.startswith('SP'):
+        flagged_user = FlaggedUser.query.filter_by(flagged_user_id=user_id).first()
+
+        if user_id and user_id.startswith('SP') and not flagged_user:
             return func(*args, **kwargs)
-        else:
+        elif not (user_id and user_id.startswith('SP')):
             flash('Please login as an sponsor to continue')
             return redirect(url_for('sponsorlogin'))
+        elif flagged_user:
+
+            flash(f'You are flagged. Contact support. Logging you out! reason: {flagged_user.reason}')
+            return redirect(url_for('logout'))
+
     return inner
     
 def auth_required_influencer(func):
     @wraps(func)
     def inner(*args, **kwargs):
         user_id = session.get('user_id')
-        if user_id and user_id.startswith('INF'):
+        flagged_user = FlaggedUser.query.filter_by(flagged_user_id=user_id).first()
+        if user_id and user_id.startswith('INF') and not flagged_user:
             return func(*args, **kwargs)
-        else:
-            flash('Please login as an influencer to continue')
-            return redirect(url_for('influencerlogin'))
+        elif not (user_id and user_id.startswith('INF')):
+            flash('Please login as an sponsor to continue')
+            return redirect(url_for('sponsorlogin'))
+        elif flagged_user:
+            flash(f'You are flagged. Contact support. Logging you out! reason: {flagged_user.reason}')
+            return redirect(url_for('logout'))
     return inner
 
     
@@ -61,6 +101,7 @@ def auth_required(func):
 
 @app.route("/")
 @auth_required
+
 def index():
     user_id=session.get("user_id")
 
@@ -75,6 +116,8 @@ def index():
         return(redirect(url_for("view_campaign")))
     elif user_type=="Influencer":
         return(redirect(url_for("infview_all_adrequests")))
+    elif user_type=="Admin":
+        return(redirect(url_for("admin_dashboard")))
     
     return render_template("index.html")
 
@@ -141,6 +184,7 @@ def sponsorregister_post():
     new_user = Sponsor(username=username, pass_hash=password_hash, name=name, email=email,company_name=company_name,industry=industry,budget=budget)
     db.session.add(new_user)
     db.session.commit()
+    flash("Registered Successfully")
     return redirect(url_for('sponsorlogin'))
     
 
@@ -179,11 +223,15 @@ def influencerregister_post():
     new_user = Influencer(username=username, pass_hash=password_hash, name=name, email=email,category=category,niche=niche,reach=reach)
     db.session.add(new_user)
     db.session.commit()
+    flash("Registered Successfully")
     return redirect(url_for('influencerlogin'))
 
 
 
+
+
 @app.route('/sponsorlogin', methods=['POST'])
+
 def sponsorlogin_post():
     username = request.form.get('username')
     password = request.form.get('password')
@@ -198,6 +246,13 @@ def sponsorlogin_post():
         flash('Username does not exist')
         return redirect(url_for('sponsorlogin'))
     
+    a=is_user_flagged(user_id=user.sponsor_id,user_type="Sponsor")
+    if a[0]:
+        flash(f"You're Flagged, cannot login. Contact Support. reason: {a[1].reason}")
+        return(redirect("sponsorlogin"))
+
+
+
     if not check_password_hash(user.pass_hash, password):
         flash('Incorrect password')
         return redirect(url_for('sponsorlogin'))
@@ -228,6 +283,12 @@ def influencerlogin_post():
     if not check_password_hash(user.pass_hash, password):
         flash('Incorrect password')
         return redirect(url_for('influencerlogin'))
+    
+    a=is_user_flagged(user_id=user.influencer_id,user_type="Influencer")
+    if a[0]:
+        flash(f"You're Flagged, cannot login. Contact Support. reason: {a[1].reason}")
+        return(redirect("influencerlogin"))
+
     
     session['user_id'] = user.influencer_id
     flash('Login successful')
@@ -339,6 +400,42 @@ def influencerprofile_post():
     flash('Profile updated successfully')
     return redirect(url_for('influencerprofile'))
 
+
+@app.route('/admin/register', methods=['GET', 'POST'])
+@auth_required_admin
+def admin_register():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        confirmpassword = request.form['confirmpassword']
+        name = request.form['name']
+        email = request.form['email']
+
+        # Check if passwords match
+        if password != confirmpassword:
+            flash('Passwords do not match.', 'danger')
+            return redirect(url_for('admin_register'))
+
+        # Check if username or email already exists
+        existing_admin = Admin.query.filter((Admin.username == username) | (Admin.email == email)).first()
+        if existing_admin:
+            flash('Username or email already exists.', 'danger')
+            return redirect(url_for('admin_register'))
+
+        # Hash the password
+        pass_hash = generate_password_hash(password)
+
+        # Create a new admin
+        new_admin = Admin(username=username, pass_hash=pass_hash, name=name, email=email)
+
+        # Add the admin to the database
+        db.session.add(new_admin)
+        db.session.commit()
+
+        flash('Admin registered successfully!', 'success')
+        return redirect(url_for('admin_dashboard'))  # Change this to the appropriate route after registration
+
+    return render_template('admin_registration.html')
 
 
 
@@ -737,6 +834,7 @@ def view_adrequest_influencer(ad_request_id):
 
     return render_template('viewadrequestinfluencer.html', ad_request=ad_request, campaign=campaign, sponsor=sponsor, messages=messages,sponsor_negotiation_amount=latest_negotiation.sponsor_negotiation_amount, influencer_negotiation_amount=latest_negotiation.influencer_negotiation_amount)
 
+
 @app.route('/negotiate/<int:ad_request_id>', methods=['GET', 'POST'])
 @auth_required
 def negotiate(ad_request_id):
@@ -748,52 +846,92 @@ def negotiate(ad_request_id):
 
     latest_negotiation = Negotiation.query.filter_by(ad_request_id=ad_request_id).order_by(Negotiation.timestamp.desc()).first()
 
-    if request.method == 'POST' and (ad_request.status == 'Accepted' or ad_request.status == 'Rejected'):
-        flash("Request already rejected or accepted")
-        return(redirect(url_for("negotiate",ad_request_id=ad_request_id)))
+    if request.method == 'POST':
 
+        if ad_request.status == 'Accepted' or ad_request.status == 'Rejected':
+            flash("Request already rejected or accepted")
+            return redirect(url_for("negotiate", ad_request_id=ad_request_id))
 
+        
 
-    if request.method == 'POST' and ad_request.status != 'Accepted' and ad_request.status != 'Rejected':
-
-        user_id = session.get("user_id")
         if user_id.startswith('SP'):
             user_type = 'Sponsor'
         elif user_id.startswith('INF'):
             user_type = 'Influencer'
         else:
-            user_type="Admin"
-        amount = float(request.form.get('amount'))
-        action = request.form.get('action')
+            user_type = "Admin"
 
-        if user_type == 'Sponsor':
-            if latest_negotiation and latest_negotiation.influencer_negotiation_amount and action == 'accept' and amount < latest_negotiation.influencer_negotiation_amount:
-                flash('Sponsor cannot accept an amount less than the influencer\'s last negotiation amount.')
-                return redirect(url_for('negotiate', ad_request_id=ad_request_id))
-
-            new_negotiation = Negotiation(ad_request_id=ad_request_id, sponsor_id=user_id, influencer_id=ad_request.influencer_id,
-                                          sponsor_negotiation_amount=amount, influencer_negotiation_amount=None)
-        else:
-            if latest_negotiation and latest_negotiation.sponsor_negotiation_amount and amount > latest_negotiation.sponsor_negotiation_amount:
-                flash('Influencer cannot negotiate an amount higher than the sponsor\'s last negotiation amount.')
-                return redirect(url_for('negotiate', ad_request_id=ad_request_id))
-
-            new_negotiation = Negotiation(ad_request_id=ad_request_id, sponsor_id=ad_request.sponsor_id, influencer_id=user_id,
-                                          sponsor_negotiation_amount=None, influencer_negotiation_amount=amount)
-
-        db.session.add(new_negotiation)
-        db.session.commit()
+        action=request.form.get('action')
 
         if action == 'accept':
+            if user_type == 'Sponsor':
+                amount = latest_negotiation.influencer_negotiation_amount if latest_negotiation else None
+            elif user_type == 'Influencer':
+                amount = latest_negotiation.sponsor_negotiation_amount if latest_negotiation else None
+
             ad_request.acceptedamount = amount
             ad_request.status = 'Accepted'
             db.session.commit()
-            flash('Negotiation accepted and amount updated.')
+            flash('Negotiation accepted. Amount updated.')
+            return redirect(url_for('negotiate', ad_request_id=ad_request_id))
 
         elif action == 'reject':
             ad_request.status = 'Rejected'
             db.session.commit()
             flash('Negotiation rejected.')
+            return redirect(url_for('negotiate', ad_request_id=ad_request_id))
+
+    
+        amount=(request.form.get("amount"))
+        if not amount or not amount.isdigit():
+            flash('Invalid amount.')
+            return redirect(url_for('negotiate', ad_request_id=ad_request_id))
+        
+        amount=float(amount)
+        # Sponsor's Negotiation Logic
+        if user_type == 'Sponsor':
+            if latest_negotiation:
+                # Ensure sponsor does not offer less than their last offer
+                if latest_negotiation.sponsor_negotiation_amount and amount < latest_negotiation.sponsor_negotiation_amount:
+                    flash('Sponsor cannot negotiate a lower amount than their previous offer.')
+                    return redirect(url_for('negotiate', ad_request_id=ad_request_id))
+                # Ensure sponsor does not accept a higher amount than influencer's last offer
+                if latest_negotiation.influencer_negotiation_amount and latest_negotiation.influencer_negotiation_amount and amount < latest_negotiation.influencer_negotiation_amount:
+                    flash('Sponsor cannot negotiate an amount lower than the influencer\'s last negotiation amount.')
+                    return redirect(url_for('negotiate', ad_request_id=ad_request_id))
+
+            new_negotiation = Negotiation(
+                ad_request_id=ad_request_id,
+                sponsor_id=user_id,
+                influencer_id=ad_request.influencer_id,
+                sponsor_negotiation_amount=amount,
+                influencer_negotiation_amount=latest_negotiation.influencer_negotiation_amount if latest_negotiation else None
+            )
+
+        # Influencer's Negotiation Logic
+        elif user_type == 'Influencer':
+            if latest_negotiation:
+                # Ensure influencer does not offer more than the sponsor's last offer
+                if latest_negotiation.sponsor_negotiation_amount and amount < latest_negotiation.sponsor_negotiation_amount:
+                    flash('Influencer cannot negotiate a lower amount than the sponsor\'s last negotiation amount.')
+                    return redirect(url_for('negotiate', ad_request_id=ad_request_id))
+                # Ensure influencer does not accept a lower amount than their previous offer
+                if latest_negotiation.influencer_negotiation_amount and latest_negotiation.influencer_negotiation_amount and amount < latest_negotiation.influencer_negotiation_amount:
+                    flash('Influencer cannot negotiate an amount lower than their previous offer.')
+                    return redirect(url_for('negotiate', ad_request_id=ad_request_id))
+
+            new_negotiation = Negotiation(
+                ad_request_id=ad_request_id,
+                sponsor_id=ad_request.sponsor_id,
+                influencer_id=user_id,
+                sponsor_negotiation_amount=latest_negotiation.sponsor_negotiation_amount if latest_negotiation else None,
+                influencer_negotiation_amount=amount
+            )
+
+        db.session.add(new_negotiation)
+        db.session.commit()
+
+        
 
         flash('Negotiation amount submitted.')
         return redirect(url_for('negotiate', ad_request_id=ad_request_id))
@@ -882,59 +1020,6 @@ def view_campaign_inf(campaign_id):
 
 
 
-@app.route('/messages/campaign/<int:campaign_id>', methods=['GET', 'POST'])
-@auth_required
-def campaign_messages(campaign_id):
-    user_id = session.get('user_id')
-
-    if user_id.startswith('SP'):
-        user_type = 'Sponsor'
-    elif user_id.startswith('INF'):
-        user_type = 'Influencer'
-    else:
-        user_type="Admin"
-
-
-    
-    
-    campaign = Campaign.query.get(campaign_id)
-    if not campaign:
-        flash('Campaign not found')
-        return redirect(url_for('index'))
-
-    if campaign.visibility!="Public":
-        flash("Not a public campaign")
-        return redirect(url_for("index"))
-    
-    
-    # Fetch messages related to the ad request
-    messages = CampaignMessage.query.filter_by(campaign_id=campaign_id).all()
-
-    if request.method == 'POST':
-        # Handle sending new messages
-        message_text = request.form.get('message')
-        if not message_text:
-            flash('Message cannot be empty')
-            return redirect(url_for('campaign_messages', campaign_id=campaign_id))
-        
-        message = CampaignMessage(
-            campaign_id=campaign_id,
-            sender_id=user_id,
-            sender_type=user_type,
-            message=message_text
-        )
-        db.session.add(message)
-        db.session.commit()
-        flash('Message sent')
-        return redirect(url_for('campaign_messages', campaign_id=campaign_id))
-
-    return render_template('campaignmessages.html', messages=messages, campaign=campaign, user_type=user_type)
-
-
-
-
-
-
 @app.route('/influencer/adrequest/view')
 @auth_required_influencer
 def infview_all_adrequests():
@@ -963,72 +1048,6 @@ def reject_adrequest(ad_request_id):
     flash('Ad request rejected.')
     return redirect(url_for('infview_all_adrequests'))
 
-
-
-@app.route('/public_campaign_messages', methods=['GET'])
-@auth_required
-def public_campaign_messages():
-    user_id = session.get('user_id')
-
-    if user_id.startswith('SP'):
-        user_type = 'Sponsor'
-    elif user_id.startswith('INF'):
-        user_type = 'Influencer'
-    else:
-        flash('Unauthorized access')
-        return redirect(url_for('index'))
-
-    # Subquery to get the latest message for each campaign
-    latest_messages_subquery = (
-        db.session.query(
-            CampaignMessage.campaign_id,
-            db.func.max(CampaignMessage.timestamp).label('latest_timestamp')
-        )
-        .group_by(CampaignMessage.campaign_id)
-        .subquery()
-    )
-
-    if user_type == 'Sponsor':
-        # Fetch latest messages where the sponsor is involved
-        latest_messages = (
-            db.session.query(Campaign, CampaignMessage)
-            .select_from(Campaign)
-            .join(latest_messages_subquery, 
-                   (Campaign.campaign_id == latest_messages_subquery.c.campaign_id))
-            .join(CampaignMessage, 
-                  (Campaign.campaign_id == CampaignMessage.campaign_id) &
-                  (CampaignMessage.timestamp == latest_messages_subquery.c.latest_timestamp))
-            .filter(Campaign.visibility == 'Public')
-            .filter(
-                (CampaignMessage.sender_id == user_id) |
-                (Campaign.sponsor_id == user_id)
-            )
-            .order_by(CampaignMessage.timestamp.desc())
-            .all()
-        )
-    else:
-        # Fetch latest messages where the influencer is involved
-        latest_messages = (
-            db.session.query(Campaign, CampaignMessage)
-            .select_from(Campaign)
-            .join(latest_messages_subquery, 
-                   (Campaign.campaign_id == latest_messages_subquery.c.campaign_id))
-            .join(CampaignMessage, 
-                  (Campaign.campaign_id == CampaignMessage.campaign_id) &
-                  (CampaignMessage.timestamp == latest_messages_subquery.c.latest_timestamp))
-            .filter(Campaign.visibility == 'Public')
-            .filter(
-                (CampaignMessage.sender_id == user_id) |
-                (CampaignMessage.campaign_id.in_(
-                    db.session.query(AdRequest.campaign_id)
-                    .filter(AdRequest.influencer_id == user_id)
-                ))
-            )
-            .order_by(CampaignMessage.timestamp.desc())
-            .all()
-        )
-
-    return render_template('public_campaign_messages.html', latest_messages=latest_messages)
 
 
 
@@ -1109,6 +1128,7 @@ def manage_proposals(proposal_id):
     
     return redirect(url_for('manage_proposals_list'))
 
+
 @app.route('/proposals/manage', methods=['GET'])
 @auth_required
 def manage_proposals_list():
@@ -1148,7 +1168,9 @@ def flag_user(user_type, user_id):
             db.session.delete(flagged_user)
             db.session.commit()
             flash('User unflagged successfully')
-
+    if request.referrer:
+        return redirect(request.referrer)
+    
     return redirect(url_for('browse_users'))
 
 
@@ -1172,11 +1194,9 @@ def browse_users():
 
 
 @app.route('/admin/dashboard')
-@auth_required
+@auth_required_admin
 def admin_dashboard():
-    if not session.get('user_id').startswith('AD'):
-        flash('Access denied')
-        return redirect(url_for('index'))
+    
 
     # Statistics
     total_users = Sponsor.query.count() + Influencer.query.count()
@@ -1218,6 +1238,44 @@ def admin_dashboard():
                            total_ad_requests=total_ad_requests, pending_ad_requests=pending_ad_requests,
                            accepted_ad_requests=accepted_ad_requests, rejected_ad_requests=rejected_ad_requests,
                            pie_chart_url=pie_chart_url, bar_chart_url=bar_chart_url)
+
+
+@app.route('/admin/browse_campaigns_adrequests')
+@auth_required_admin
+def browse_campaigns_adrequests():
+    # Retrieve all campaigns
+    campaigns = db.session.query(
+        Campaign,
+        db.exists().where(FlaggedUser.flagged_user_id == Campaign.sponsor_id)
+        .where(FlaggedUser.flagged_user_type == 'Sponsor')
+        .label('sponsor_flagged')
+    ).all()
+
+    # Retrieve all ad requests
+    ad_requests = db.session.query(
+        AdRequest,
+        db.exists().where(FlaggedUser.flagged_user_id == AdRequest.influencer_id)
+        .where(FlaggedUser.flagged_user_type == 'Influencer')
+        .label('influencer_flagged'),
+        db.exists().where(FlaggedUser.flagged_user_id == AdRequest.sponsor_id)
+        .where(FlaggedUser.flagged_user_type == 'Sponsor')
+        .label('sponsor_flagged')
+    ).all()
+
+    return render_template('browse_campaigns_adrequests.html', campaigns=campaigns, ad_requests=ad_requests)
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

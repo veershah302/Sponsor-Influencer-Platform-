@@ -12,30 +12,21 @@
         <dt class="col-sm-3">Sponsor</dt>
         <dd class="col-sm-9">{{ sponsor }}</dd>
 
-        <dt class="col-sm-3">Influencer</dt>
-        <dd class="col-sm-9">{{ influencer }}</dd>
+        
 
-        <dt class="col-sm-3">Sponsor Negotiation Amount</dt>
-        <dd class="col-sm-9">{{sponsor_negotiation_amount if sponsor_negotiation_amount else 'N/A' }}</dd>
+        <dt class="col-sm-3">Accepted Amount</dt>
+        <dd class="col-sm-9">{{ad_request.acceptedamount if sponsor_negotiation_amount else 'N/A' }}</dd>
 
-        <dt class="col-sm-3">Influencer Negotiation Amount</dt>
-        <dd class="col-sm-9">{{influencer_negotiation_amount if influencer_negotiation_amount else 'N/A' }}</dd>
+    
 
         <dt class="col-sm-3">Status</dt>
         <dd class="col-sm-9">{{ ad_request.status }}</dd>
 
-        {% if ad_request.acceptedamount %}
-        <dt class="col-sm-3">Accepted Amount</dt>
-        <dd class="col-sm-9">{{ ad_request.acceptedamount }}</dd>
-        {% endif %}
+        
 
-        <dt class="col-sm-3">Messages</dt>
-        <dd class="col-sm-9">
-            <ul>
-            {% for message in messages %}
-                <li><strong>{{ message.sender_id }}</strong>: {{ message.message }} <small class="text-muted">{{ message.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</small></li>
-            {% endfor %}
-            </ul>
+        <dt class="col-sm-3">Requirements</dt>
+        <dd class="col-sm-9"> {{ad_request.requirements}}
+            
         </dd>
     </dl>
 

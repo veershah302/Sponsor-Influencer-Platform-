@@ -1,9 +1,9 @@
 {% extends 'layout.html' %}
 {% block title %}
-Sponsor Register
+Admin Register
 {% endblock %}
 {% block content %}
-<h1>Sponsor Register</h1>
+<h1>New Admin Register</h1>
 
 <form method="post">
     <div class="form-group">
@@ -31,29 +31,7 @@ Sponsor Register
         <input type="email" name="email" class="form-control" required>
     </div>
 
-
-    
-        <div class="form-group">
-            <label for="company_name" class="form-label">Company Name</label>
-            <input type="text" name="company_name" class="form-control" required>
-        </div>
-
-        <div class="form-group">
-            <label for="industry" class="form-label">Industry</label>
-            <input type="text" name="industry" class="form-control" required>
-        </div>
-
-        <div class="form-group">
-            <label for="budget" class="form-label">Budget</label>
-            <input type="number" name="budget" class="form-control">
-        </div>
-    
-
-
     <input type="submit" value="Register" class="btn btn-primary">
 </form>
 
 {% endblock %}
-
-
-

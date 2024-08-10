@@ -34,13 +34,24 @@
         <div class="form-group mt-3">
             <button type="submit" name="action" value="negotiate" class="btn btn-primary"
                     {% if ad_request.status == 'Accepted' %} disabled {% endif %}>Negotiate</button>
-            {% if user_id.endswith('SP') %}
-            <button type="submit" name="action" value="accept" class="btn btn-success"
-                    {% if ad_request.status == 'Accepted' %} disabled {% endif %}>Accept</button>
-            {% endif %}
-            <button type="submit" name="action" value="reject" class="btn btn-danger"
-                    {% if ad_request.status == 'Accepted' %} disabled {% endif %}>Reject</button>
+            
+            
         </div>
+
+
+
+    </form>
+    <form method="post">
+    <div class="form-group">
+        <button type="submit" name="action" value="accept" class="btn btn-success"
+                    {% if ad_request.status == 'Accepted' %} disabled {% endif %}>Accept</button>
+            
+        <button type="submit" name="action" value="reject" class="btn btn-danger"
+                {% if ad_request.status == 'Accepted' %} disabled {% endif %}>Reject</button>
+
+
+        
+    </div>
     </form>
     {% if ad_request.status == 'Accepted' %}
     <div class="alert alert-success mt-3">

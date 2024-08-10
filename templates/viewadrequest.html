@@ -12,11 +12,9 @@
         <dt class="col-sm-3">Influencer</dt>
         <dd class="col-sm-9">{{ influencer }}</dd>
 
-        <dt class="col-sm-3">Sponsor Negotiation Amount</dt>
-        <dd class="col-sm-9">{{ sponsor_negotiation_amount }}</dd>
-
-        <dt class="col-sm-3">Influencer Negotiation Amount</dt>
-        <dd class="col-sm-9">{{ ad_request.influencer_negotiation_amount }}</dd>
+       
+        <dt class="col-sm-3">Accepted Amount</dt>
+        <dd class="col-sm-9">{{ ad_request.acceptedamount if ad_request.acceptedamount else 'N/A' }}</dd>
 
 
         <dt class="col-sm-3">Status</dt>
