@@ -67,8 +67,8 @@ def auth_required_influencer(func):
         if user_id and user_id.startswith('INF') and not flagged_user:
             return func(*args, **kwargs)
         elif not (user_id and user_id.startswith('INF')):
-            flash('Please login as an sponsor to continue')
-            return redirect(url_for('sponsorlogin'))
+            flash('Please login as an influencer to continue')
+            return redirect(url_for('influencerlogin'))
         elif flagged_user:
             flash(f'You are flagged. Contact support. Logging you out! reason: {flagged_user.reason}')
             return redirect(url_for('logout'))
@@ -433,7 +433,7 @@ def admin_register():
         db.session.commit()
 
         flash('Admin registered successfully!', 'success')
-        return redirect(url_for('admin_dashboard'))  # Change this to the appropriate route after registration
+        return redirect(url_for('admin_dashboard'))  
 
     return render_template('admin_registration.html')
 
@@ -891,13 +891,13 @@ def negotiate(ad_request_id):
         # Sponsor's Negotiation Logic
         if user_type == 'Sponsor':
             if latest_negotiation:
-                # Ensure sponsor does not offer less than their last offer
+            
                 if latest_negotiation.sponsor_negotiation_amount and amount < latest_negotiation.sponsor_negotiation_amount:
                     flash('Sponsor cannot negotiate a lower amount than their previous offer.')
                     return redirect(url_for('negotiate', ad_request_id=ad_request_id))
-                # Ensure sponsor does not accept a higher amount than influencer's last offer
-                if latest_negotiation.influencer_negotiation_amount and latest_negotiation.influencer_negotiation_amount and amount < latest_negotiation.influencer_negotiation_amount:
-                    flash('Sponsor cannot negotiate an amount lower than the influencer\'s last negotiation amount.')
+                
+                if latest_negotiation.influencer_negotiation_amount and amount > latest_negotiation.influencer_negotiation_amount:
+                    flash('Sponsor cannot negotiate an amount higher than the influencer\'s last negotiation amount.')
                     return redirect(url_for('negotiate', ad_request_id=ad_request_id))
 
             new_negotiation = Negotiation(
@@ -911,13 +911,13 @@ def negotiate(ad_request_id):
         # Influencer's Negotiation Logic
         elif user_type == 'Influencer':
             if latest_negotiation:
-                # Ensure influencer does not offer more than the sponsor's last offer
+                
                 if latest_negotiation.sponsor_negotiation_amount and amount < latest_negotiation.sponsor_negotiation_amount:
                     flash('Influencer cannot negotiate a lower amount than the sponsor\'s last negotiation amount.')
                     return redirect(url_for('negotiate', ad_request_id=ad_request_id))
-                # Ensure influencer does not accept a lower amount than their previous offer
-                if latest_negotiation.influencer_negotiation_amount and latest_negotiation.influencer_negotiation_amount and amount < latest_negotiation.influencer_negotiation_amount:
-                    flash('Influencer cannot negotiate an amount lower than their previous offer.')
+
+                if latest_negotiation.influencer_negotiation_amount and amount > latest_negotiation.influencer_negotiation_amount:
+                    flash('Influencer cannot negotiate an amount higher than their previous offer.')
                     return redirect(url_for('negotiate', ad_request_id=ad_request_id))
 
             new_negotiation = Negotiation(
